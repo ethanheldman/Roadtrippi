@@ -1,0 +1,223 @@
+// Roadside Wonders - Database Schema (per spec)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  username     String    @unique
+  email        String    @unique
+  passwordHash String   @map("password_hash")
+  avatarUrl    String?   @map("avatar_url")
+  bio         String?   // max 500 enforced in app
+  location    String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  checkIns      CheckIn[]
+  photos        Photo[]
+  lists         List[]
+  followers     Follow[]   @relation("Following")
+  following     Follow[]   @relation("Followers")
+  likes         Like[]
+  comments      Comment[]
+  listComments  ListComment[]
+  badges        Badge[]
+  wantToVisit   WantToVisit[]
+
+  @@map("users")
+}
+
+model Attraction {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  address     String?
+  city        String?
+  state       String
+  latitude    Float?
+  longitude   Float?
+  imageUrl    String?  @map("image_url")
+  sourceUrl   String?  @map("source_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  checkIns         CheckIn[]
+  photos           Photo[]
+  attractionCategories AttractionCategory[]
+  listItems        ListItem[]
+  wantToVisit      WantToVisit[]
+
+  @@index([name])
+  @@index([city])
+  @@index([state])
+  @@map("attractions")
+}
+
+model CheckIn {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  attractionId String   @map("attraction_id")
+  rating       Float?   // 1–5, half stars allowed (e.g. 3.5)
+  review       String?
+  visitDate    DateTime @map("visit_date")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attraction Attraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+  photos     Photo[]
+  comments   Comment[]
+
+  @@unique([userId, attractionId, visitDate])
+  @@index([userId])
+  @@index([attractionId])
+  @@map("check_ins")
+}
+
+model Photo {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  attractionId String   @map("attraction_id")
+  checkInId    String?  @map("check_in_id")
+  url          String
+  caption      String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attraction Attraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+  checkIn    CheckIn?   @relation(fields: [checkInId], references: [id], onDelete: SetNull)
+
+  @@index([attractionId])
+  @@map("photos")
+}
+
+model Category {
+  id   String @id @default(uuid())
+  name String
+  slug String @unique
+  icon String?
+
+  attractionCategories AttractionCategory[]
+
+  @@map("categories")
+}
+
+model AttractionCategory {
+  attractionId String
+  categoryId   String @map("category_id")
+
+  attraction Attraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+  category   Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([attractionId, categoryId])
+  @@map("attraction_categories")
+}
+
+model List {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  title        String
+  description  String?
+  public       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listItems    ListItem[]
+  listComments ListComment[]
+
+  @@index([userId])
+  @@map("lists")
+}
+
+model ListItem {
+  id           String  @id @default(uuid())
+  listId       String  @map("list_id")
+  attractionId String  @map("attraction_id")
+  position     Int     @default(0)
+  notes        String?
+
+  list       List       @relation(fields: [listId], references: [id], onDelete: Cascade)
+  attraction Attraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, attractionId])
+  @@map("list_items")
+}
+
+model Follow {
+  followerId  String @map("follower_id")
+  followingId String @map("following_id")
+
+  follower  User @relation("Followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@map("follows")
+}
+
+model Like {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  targetId   String   @map("target_id")
+  targetType String   @map("target_type") // "review" | "photo" | "list"
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetId, targetType])
+  @@map("likes")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  checkInId String   @map("check_in_id")
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checkIn CheckIn @relation(fields: [checkInId], references: [id], onDelete: Cascade)
+
+  @@index([checkInId])
+  @@map("comments")
+}
+
+model ListComment {
+  id        String   @id @default(uuid())
+  listId    String   @map("list_id")
+  userId    String   @map("user_id")
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  list List @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+  @@map("list_comments")
+}
+
+model Badge {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  badgeType String   @map("badge_type")
+  earnedAt  DateTime @default(now()) @map("earned_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("badges")
+}
+
+model WantToVisit {
+  userId       String   @map("user_id")
+  attractionId String   @map("attraction_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attraction Attraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, attractionId])
+  @@map("want_to_visit")
+}
