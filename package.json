@@ -17,6 +17,7 @@
     "tunnel": "npx localtunnel --port 5173"
   },
   "devDependencies": {
+    "@vercel/node": "^5.5.29",
     "concurrently": "^8.2.2"
   }
 }
