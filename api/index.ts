@@ -18,11 +18,23 @@ async function loadCreateApp(): Promise<() => Promise<FastifyApp>> {
   }
 }
 
-function getPath(req: VercelRequest): string {
-  // Rewrite sends /api/(.*) -> /api?path=$1, so path param is in query
+/** Build full request URL (path + query) for Fastify inject so pagination/sort/filters work on Vercel */
+function getRequestUrl(req: VercelRequest): string {
+  // Rewrite sends /api/(.*) -> /api?path=$1, so path param is in query; other params (page, sortBy, etc.) are also in query
   const pathParam = req.query?.path;
   if (typeof pathParam === "string" && pathParam.length > 0) {
-    return "/api/" + pathParam;
+    const basePath = "/api/" + pathParam.replace(/\?.*/, ""); // strip any embedded query from path
+    const q = { ...req.query };
+    delete q.path;
+    const keys = Object.keys(q).filter((k) => q[k] !== undefined && q[k] !== "");
+    if (keys.length === 0) return basePath;
+    const search = keys
+      .map((k) => {
+        const v = q[k];
+        return encodeURIComponent(k) + "=" + encodeURIComponent(Array.isArray(v) ? v[0] : String(v));
+      })
+      .join("&");
+    return basePath + "?" + search;
   }
   const raw =
     req.headers["x-request-path"] ??
@@ -41,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     await appInstance.ready();
 
-    const path = getPath(req);
+    const url = getRequestUrl(req);
     const method = (req.method ?? "GET").toUpperCase() as "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
     const headers: Record<string, string> = {};
     for (const [k, v] of Object.entries(req.headers)) {
@@ -56,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const response = (await appInstance.inject({
       method,
-      url: path,
+      url,
       headers,
       payload,
     })) as { statusCode: number; headers: Record<string, string | string[] | undefined>; payload: string | Buffer };
