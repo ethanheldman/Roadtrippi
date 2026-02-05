@@ -1,0 +1,14 @@
+---
+description: After fixing something, always commit, push, and deploy
+alwaysApply: true
+---
+
+# Commit, Push, and Deploy After Fixes
+
+After you make fixes or feature changes to this project:
+
+1. **Commit** – Stage the changed files and create a clear, concise commit message describing the fix or change.
+2. **Push** – Push the commit to the remote (e.g. `origin main`).
+3. **Deploy** – Trigger a deployment (e.g. Vercel will auto-deploy on push; if not, run `npx vercel --prod` or the project’s deploy command).
+
+Do not stop after editing files. Always complete these three steps unless the user explicitly asks not to commit, push, or deploy.
