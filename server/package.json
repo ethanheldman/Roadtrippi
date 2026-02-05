@@ -19,6 +19,7 @@
     "import-muffler-man": "tsx scripts/import-muffler-man.ts",
     "dedupe-eddie-world": "tsx scripts/dedupe-eddie-world.ts",
     "dedupe-paul-bunyan-bangor": "tsx scripts/dedupe-paul-bunyan-bangor.ts",
+    "dedupe-fremont-troll": "tsx scripts/dedupe-fremont-troll.ts",
     "geocode-attractions": "tsx scripts/geocode-attractions.ts"
   },
   "prisma": {
