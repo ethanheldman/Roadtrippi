@@ -212,7 +212,8 @@ export type InboxItem = {
 export const users = {
   uploadAvatar: (file: File) => {
     const form = new FormData();
-    form.append("avatar", file);
+    // Ensure a filename so the server always sees this as a file part
+    form.append("avatar", file, file.name || "image.jpg");
     return apiUpload<{ avatarUrl: string }>("/api/users/me/avatar", form);
   },
   updateMe: (data: { avatarUrl?: string | null; bio?: string | null; location?: string | null }) =>

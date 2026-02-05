@@ -34,7 +34,8 @@ function App() {
           <Route path="/people" element={<DiscoverPeople />} />
           <Route path="/lists" element={<MyLists />} />
           <Route path="/lists/:id" element={<ListDetail />} />
-          <Route path="/inbox" element={<Navigate to="/profile/activity" replace />} />
+          <Route path="/inbox" element={<Navigate to="/profile/friends" replace />} />
+            <Route path="/profile/activity" element={<Navigate to="/profile/friends" replace />} />
           </Routes>
         </ErrorBoundary>
       </Layout>

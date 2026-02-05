@@ -70,7 +70,7 @@ const ROADSIDE_AMERICA = {
   },
   "Trolls: Guardians of the Seeds": {
     sourceUrl: "https://www.roadsideamerica.com/tip/82210",
-    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Thomas_Dambo_troll_at_Coastal_Maine_Botanical_Gardens.jpg/800px-Thomas_Dambo_troll_at_Coastal_Maine_Botanical_Gardens.jpg",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/5/5b/Thomas_Dambo_troll_at_Coastal_Maine_Botanical_Gardens.jpg",
   },
   "Blue Whale of Catoosa": {
     sourceUrl: "https://www.roadsideamerica.com/story/8543",
@@ -122,11 +122,11 @@ const ROADSIDE_AMERICA = {
   },
   "Salvation Mountain": {
     sourceUrl: "https://www.roadsideamerica.com/tip/12345",
-    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Salvation_Mountain_1.jpg/800px-Salvation_Mountain_1.jpg",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Salvation_Mountain.jpg/800px-Salvation_Mountain.jpg",
   },
   "Giant Lobster": {
     sourceUrl: "https://www.roadsideamerica.com/tip/82210",
-    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Giant_Lobster_Boothbay_ME.jpg/800px-Giant_Lobster_Boothbay_ME.jpg",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/8/82/Giant_Lobster_Boothbay_ME.jpg",
   },
   "World's Largest Chest of Drawers": {
     sourceUrl: "https://www.roadsideamerica.com/tip/12345",
@@ -186,7 +186,7 @@ const ROADSIDE_AMERICA = {
   },
   "Ivanpah Solar Electric Generating System": {
     sourceUrl: "https://www.youtube.com/results?search_query=IVANPAH+coolryanfilms",
-    imageUrl: "/uploads/attractions/ivanpah-solar.png",
+    imageUrl: "https://img.youtube.com/vi/rTOzGdAfLPk/hqdefault.jpg",
   },
 } as const;
 
@@ -301,6 +301,19 @@ async function main() {
         data: { attractionId: att.id, categoryId: catId },
       });
     }
+  }
+
+  // Dedupe: keep one World's Largest Thermometer (Baker, CA), remove extras
+  const thermometers = await prisma.attraction.findMany({
+    where: { name: "World's Largest Thermometer", state: "CA" },
+    orderBy: { createdAt: "asc" },
+  });
+  if (thermometers.length > 1) {
+    const [, ...remove] = thermometers;
+    for (const att of remove) {
+      await prisma.attraction.delete({ where: { id: att.id } });
+    }
+    console.log(`Deduped World's Largest Thermometer: kept 1, removed ${remove.length}`);
   }
 
   console.log("Seed complete.");

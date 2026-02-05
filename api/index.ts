@@ -2,8 +2,21 @@ import path from "path";
 import { pathToFileURL } from "url";
 import { VercelRequest, VercelResponse } from "@vercel/node";
 
+/** Disable body parsing so we can pass raw multipart (file upload) body to Fastify */
+export const config = { api: { bodyParser: false } };
+
 type FastifyApp = Awaited<ReturnType<typeof import("../server/dist/app.js").createApp>>;
 let appInstance: FastifyApp | null = null;
+
+/** Read raw request body from stream (required when bodyParser is false; needed for multipart uploads) */
+function readRawBody(req: VercelRequest): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
+}
 
 async function loadCreateApp(): Promise<() => Promise<FastifyApp>> {
   // Prefer explicit path from cwd so serverless runtime finds server/dist
@@ -61,9 +74,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         headers[k] = Array.isArray(v) ? v.join(", ") : String(v);
       }
     }
-    let payload: string | undefined;
-    if (req.body !== undefined && method !== "GET" && method !== "HEAD") {
-      payload = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+    let payload: string | Buffer | undefined;
+    if (method !== "GET" && method !== "HEAD") {
+      const contentType = headers["content-type"] ?? "";
+      const isMultipart = contentType.includes("multipart/form-data");
+      const raw = await readRawBody(req);
+      if (raw.length > 0) {
+        payload = isMultipart ? raw : raw.toString("utf8");
+      } else if (req.body !== undefined && !isMultipart) {
+        // Fallback when platform already parsed body (e.g. JSON)
+        payload = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+      }
     }
 
     const response = (await appInstance.inject({
