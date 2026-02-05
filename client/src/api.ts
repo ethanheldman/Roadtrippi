@@ -17,9 +17,9 @@ export async function api<T>(
   if (token) (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`${API}${path}`, { ...options, headers });
   if (!res.ok) {
-    const err = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
-    // Prefer message (Fastify/API detail) over error (often generic "Bad Request")
-    const msg = err.message ?? err.error ?? res.statusText;
+    const err = (await res.json().catch(() => ({}))) as { error?: string; message?: string; detail?: string };
+    // Prefer detail (serverless debug) / message (Fastify) over generic error
+    const msg = err.detail ?? err.message ?? err.error ?? res.statusText;
     throw new Error(msg);
   }
   return res.json() as Promise<T>;

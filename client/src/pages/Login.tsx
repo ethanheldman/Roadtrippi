@@ -30,8 +30,10 @@ export function Login() {
       <p className="text-lbx-muted text-sm mb-6">Sign in to check in and save places to lists.</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-lbx-muted mb-1">Username</label>
+          <label htmlFor="login-username" className="block text-sm font-medium text-lbx-muted mb-1">Username</label>
           <input
+            id="login-username"
+            name="username"
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -41,12 +43,15 @@ export function Login() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-lbx-muted mb-1">Password</label>
+          <label htmlFor="login-password" className="block text-sm font-medium text-lbx-muted mb-1">Password</label>
           <input
+            id="login-password"
+            name="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete="current-password"
             className="w-full px-4 py-2.5 bg-lbx-card border border-lbx-border rounded-md text-lbx-white placeholder-lbx-muted focus:border-lbx-green focus:ring-1 focus:ring-lbx-green focus:outline-none text-sm"
           />
         </div>

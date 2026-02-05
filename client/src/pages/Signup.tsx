@@ -31,35 +31,44 @@ export function Signup() {
       <p className="text-lbx-muted text-sm mb-6">Create an account to check in and save places to lists.</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-lbx-muted mb-1">Username</label>
+          <label htmlFor="signup-username" className="block text-sm font-medium text-lbx-muted mb-1">Username</label>
           <input
+            id="signup-username"
+            name="username"
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
             minLength={2}
             maxLength={50}
+            autoComplete="username"
             className="w-full px-4 py-2.5 bg-lbx-card border border-lbx-border rounded-md text-lbx-white placeholder-lbx-muted focus:border-lbx-green focus:ring-1 focus:ring-lbx-green focus:outline-none text-sm"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-lbx-muted mb-1">Email</label>
+          <label htmlFor="signup-email" className="block text-sm font-medium text-lbx-muted mb-1">Email</label>
           <input
+            id="signup-email"
+            name="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="email"
             className="w-full px-4 py-2.5 bg-lbx-card border border-lbx-border rounded-md text-lbx-white placeholder-lbx-muted focus:border-lbx-green focus:ring-1 focus:ring-lbx-green focus:outline-none text-sm"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-lbx-muted mb-1">Password (min 8 characters)</label>
+          <label htmlFor="signup-password" className="block text-sm font-medium text-lbx-muted mb-1">Password (min 8 characters)</label>
           <input
+            id="signup-password"
+            name="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={8}
+            autoComplete="new-password"
             className="w-full px-4 py-2.5 bg-lbx-card border border-lbx-border rounded-md text-lbx-white placeholder-lbx-muted focus:border-lbx-green focus:ring-1 focus:ring-lbx-green focus:outline-none text-sm"
           />
         </div>

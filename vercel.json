@@ -1,7 +1,7 @@
 {
   "buildCommand": "cd server && npm install && npx prisma generate && npx tsc && cd ../client && npm install && npm run build",
   "outputDirectory": "client/dist",
-  "installCommand": "npm install && cd server && npm install && npx prisma generate",
+  "installCommand": "npm install && cd server && npm install && npx prisma generate && cd .. && npx prisma generate --schema=server/prisma/schema.prisma",
   "framework": "vite",
   "rewrites": [
     {
