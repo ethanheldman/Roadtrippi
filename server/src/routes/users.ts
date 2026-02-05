@@ -19,8 +19,17 @@ const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const EXT_BY_MIME: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
 const updateMeBody = z.object({
+  // Allow full URLs or relative paths (e.g. /uploads/avatars/xxx.jpg) so saved profile keeps upload path
   avatarUrl: z
-    .preprocess((v) => (v === "" ? null : v), z.string().url().max(2000).optional().nullable()),
+    .preprocess(
+      (v) => (v === "" ? null : v),
+      z
+        .string()
+        .max(2000)
+        .refine((s) => s.startsWith("/") || s.startsWith("http://") || s.startsWith("https://"), "Must be a URL or path")
+        .optional()
+        .nullable()
+    ),
   bio: z.preprocess((v) => (v === "" ? null : v), z.string().max(500).optional().nullable()),
   location: z.preprocess((v) => (v === "" ? null : v), z.string().max(200).optional().nullable()),
 });
@@ -77,8 +86,15 @@ export async function usersRoutes(app: FastifyInstance) {
   // --- Upload avatar (multipart) ---
   app.post("/me/avatar", { preHandler: auth }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = await requireAuth(request as FastifyRequest<{ Params?: Record<string, string> }>, reply);
-    const part = await (request as unknown as { file: () => Promise<{ type?: string; file: NodeJS.ReadableStream; mimetype: string; filename: string; toBuffer: () => Promise<Buffer> } | undefined> }).file();
-    if (!part || part.type !== "file") {
+    const req = request as unknown as {
+      isMultipart: () => boolean;
+      file: () => Promise<{ mimetype: string; filename: string; toBuffer: () => Promise<Buffer> } | undefined>;
+    };
+    if (!req.isMultipart()) {
+      return reply.status(400).send({ error: "No file uploaded. Choose a JPEG, PNG, or WebP image." });
+    }
+    const part = await req.file();
+    if (!part) {
       return reply.status(400).send({ error: "No file uploaded. Choose a JPEG, PNG, or WebP image." });
     }
     const mimetype = part.mimetype;
@@ -90,6 +106,9 @@ export async function usersRoutes(app: FastifyInstance) {
     const dest = path.join(AVATAR_DIR, filename);
     try {
       const buffer = await part.toBuffer();
+      if (!buffer || buffer.length === 0) {
+        return reply.status(400).send({ error: "Uploaded file is empty. Choose a valid image." });
+      }
       fs.writeFileSync(dest, buffer);
     } catch (err) {
       request.log.error(err);

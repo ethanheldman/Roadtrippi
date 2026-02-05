@@ -57,9 +57,9 @@ export function Layout({ children }: { children: ReactNode }) {
                 <Link
                   to="/profile/friends"
                   className={loc.pathname.startsWith("/profile/") ? "text-lbx-green" : "text-lbx-muted hover:text-lbx-white transition-colors"}
-                  title="Friends, following, followers & activity"
+                  title="Activity, following, followers"
                 >
-                  Friends
+                  Activity
                 </Link>
                 <Link
                   to="/profile"

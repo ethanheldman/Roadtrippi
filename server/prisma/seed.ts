@@ -184,6 +184,10 @@ const ROADSIDE_AMERICA = {
     sourceUrl: "https://www.roadsideamerica.com/tip/12345",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Shoe_Philadelphia_Art_Museum.jpg/800px-Shoe_Philadelphia_Art_Museum.jpg",
   },
+  "Ivanpah Solar Electric Generating System": {
+    sourceUrl: "https://www.youtube.com/results?search_query=IVANPAH+coolryanfilms",
+    imageUrl: "/uploads/attractions/ivanpah-solar.png",
+  },
 } as const;
 
 const SAMPLE_ATTRACTIONS: SeedAttraction[] = [
@@ -237,6 +241,7 @@ const SAMPLE_ATTRACTIONS: SeedAttraction[] = [
   { name: "Car Forest", city: "Goldfield", state: "NV", description: "Over 40 cars, trucks, vans, and buses have been buried nose-down, or stacked atop each other, along a dirt road in the desert. Created by Mark Rippie and Chad Sorg in 2002. International Car Forest of the Last Church. Free, open 24/7.", latitude: 37.7085, longitude: -117.2358, address: "Crystal Ave., Goldfield, NV", imageUrl: ROADSIDE_AMERICA["Car Forest"].imageUrl, sourceUrl: ROADSIDE_AMERICA["Car Forest"].sourceUrl },
   { name: "Gas Works Park", city: "Seattle", state: "WA", description: "Park on the site of a former coal gasification plant. Industrial towers and machinery stand as ruins; some structures are part of a children's play barn. Kite-flying hill with sundial, picnic areas, and views of Lake Union and the Seattle skyline. Designed by Richard Haag; opened 1975.", latitude: 47.6460, longitude: -122.3340, address: "2101 N Northlake Way, Seattle, WA", imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Gas_Works_Park%2C_Seattle%2C_Washington%2C_USA.jpg/800px-Gas_Works_Park%2C_Seattle%2C_Washington%2C_USA.jpg" },
   { name: "Gospodor Monument Park", city: "Toledo", state: "WA", description: "Towering metal columns along I-5 once supported sculptures commemorating the Holocaust, Native Americans (Chief Seattle), and Christianity (Mother Teresa). Created in 2002 by Dominic Gospodor. Creator died in 2010; monuments now preserved by the city of Toledo.", latitude: 46.4561, longitude: -122.8839, address: "370 Camus Rd, Toledo, WA", imageUrl: ROADSIDE_AMERICA["Gospodor Monument Park"].imageUrl, sourceUrl: ROADSIDE_AMERICA["Gospodor Monument Park"].sourceUrl },
+  { name: "Ivanpah Solar Electric Generating System", city: "Ivanpah", state: "CA", description: "World's largest concentrating solar power plant in the Mojave Desert. Three 450-foot towers surrounded by hundreds of thousands of mirrors that focus sunlight to create steam and generate electricity. Visible from I-15 between Las Vegas and Los Angeles, near Primm.", latitude: 35.57, longitude: -115.47, address: "Mojave Desert, San Bernardino County, CA", imageUrl: ROADSIDE_AMERICA["Ivanpah Solar Electric Generating System"].imageUrl, sourceUrl: ROADSIDE_AMERICA["Ivanpah Solar Electric Generating System"].sourceUrl },
 ];
 
 const CATEGORIES = [

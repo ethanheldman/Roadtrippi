@@ -14,10 +14,10 @@ const FETCHERS = {
 } as const;
 
 const TITLES: Record<Tab, string> = {
-  friends: "Friends",
+  friends: "Activity",
   following: "Following",
   followers: "Followers",
-  activity: "Activity",
+  activity: "Feed",
 };
 
 function formatTime(iso: string): string {
