@@ -197,7 +197,7 @@ async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
 
 export type InboxItem = {
   id: string;
-  type: "like_review" | "like_list" | "comment_review" | "comment_list";
+  type: "like_review" | "like_list" | "comment_review" | "comment_list" | "follow";
   actor: { id: string; username: string; avatarUrl: string | null };
   createdAt: string;
   checkInId?: string;

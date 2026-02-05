@@ -46,7 +46,9 @@ function ActivityRow({ item }: { item: InboxItem & { rating?: number | null } })
         ? "liked your list"
         : item.type === "comment_review"
           ? "commented on your review"
-          : "commented on your list";
+          : item.type === "comment_list"
+            ? "commented on your list"
+            : "started following you";
   const target =
     item.attractionId != null ? (
       <Link
@@ -240,7 +242,7 @@ export function PeopleList() {
           <div className="rounded-lg border border-lbx-border bg-lbx-card p-10 text-center">
             <p className="text-lbx-text font-medium mb-1">No activity yet</p>
             <p className="text-lbx-muted text-sm">
-              When someone likes or comments on your reviews or lists, or when people you follow check in, it will show up here.
+              When someone follows you, likes or comments on your reviews or lists, or when people you follow check in, it will show up here.
             </p>
             <p className="text-lbx-muted text-sm mt-2">
               <Link to="/people" className="text-lbx-green hover:underline">Find people to follow</Link>

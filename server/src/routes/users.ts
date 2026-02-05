@@ -245,7 +245,7 @@ export async function usersRoutes(app: FastifyInstance) {
       const myCheckInIds = myCheckIns.map((c) => c.id);
       const myListIds = myLists.map((l) => l.id);
 
-      const [likesReview, likesList, commentsReview, commentsList] = await Promise.all([
+      const [likesReview, likesList, commentsReview, commentsList, followsOfMe] = await Promise.all([
         myCheckInIds.length > 0
           ? prisma.like.findMany({
               where: {
@@ -288,11 +288,17 @@ export async function usersRoutes(app: FastifyInstance) {
               orderBy: { createdAt: "desc" },
             })
           : [],
+        prisma.follow.findMany({
+          where: { followingId: userId },
+          include: { follower: { select: { id: true, username: true, avatarUrl: true } } },
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        }),
       ]);
 
       type InboxItem = {
         id: string;
-        type: "like_review" | "like_list" | "comment_review" | "comment_list";
+        type: "like_review" | "like_list" | "comment_review" | "comment_list" | "follow";
         actor: { id: string; username: string; avatarUrl: string | null };
         createdAt: string;
         checkInId?: string;
@@ -376,6 +382,14 @@ export async function usersRoutes(app: FastifyInstance) {
           listId: c.listId,
           listTitle: c.list?.title ?? undefined,
           commentSnippet: c.text.slice(0, 100) + (c.text.length > 100 ? "…" : ""),
+        });
+      }
+      for (const f of followsOfMe) {
+        items.push({
+          id: `follow-${f.followerId}-${f.followingId}`,
+          type: "follow",
+          actor: f.follower,
+          createdAt: f.createdAt.toISOString(),
         });
       }
 

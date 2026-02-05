@@ -32,7 +32,9 @@ function InboxRow({ item }: { item: InboxItem & { rating?: number | null } }) {
         ? "liked your list"
         : item.type === "comment_review"
           ? "commented on your review"
-          : "commented on your list";
+          : item.type === "comment_list"
+            ? "commented on your list"
+            : "started following you";
   const target =
     item.attractionId != null ? (
       <Link

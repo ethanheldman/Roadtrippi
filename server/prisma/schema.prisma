@@ -148,8 +148,9 @@ model ListItem {
 }
 
 model Follow {
-  followerId  String @map("follower_id")
-  followingId String @map("following_id")
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   follower  User @relation("Followers", fields: [followerId], references: [id], onDelete: Cascade)
   following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
