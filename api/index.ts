@@ -1,6 +1,8 @@
 import path from "path";
-import { pathToFileURL } from "url";
+import { pathToFileURL, fileURLToPath } from "url";
 import { VercelRequest, VercelResponse } from "@vercel/node";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import type { FastifyInstance } from "fastify";
 
 /** Disable body parsing so we can pass raw multipart (file upload) body to Fastify */
