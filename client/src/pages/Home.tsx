@@ -4,7 +4,7 @@ import { AttractionCard } from "../components/AttractionCard";
 import { CardGridSkeleton } from "../components/CardSkeleton";
 import { StarDisplay } from "../components/StarDisplay";
 import { useAuth } from "../context/AuthContext";
-import { attractions, friends, checkIns, type Attraction, type Paginated, type Category, type FeedCheckIn, type CommentItem } from "../api";
+import { attractions, friends, checkIns, type Attraction, type Paginated, type FeedCheckIn, type CommentItem } from "../api";
 import { SORT_OPTIONS } from "../constants/sortOptions";
 
 const HERO_IMAGE =
@@ -34,9 +34,7 @@ export function Home() {
   const [state, setState] = useState<string>("");
   const [city, setCity] = useState("");
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
-  const [category, setCategory] = useState<string>("");
   const [sortIndex, setSortIndex] = useState(0);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [heroOpacity, setHeroOpacity] = useState(1);
@@ -129,7 +127,6 @@ export function Home() {
         state: state || undefined,
         city: city.trim() || undefined,
         search: search || undefined,
-        category: category || undefined,
         sortBy: sort.value,
         sortOrder: sort.order,
         lat: userCoords?.lat,
@@ -138,7 +135,7 @@ export function Home() {
       .then(setData)
       .catch(() => setData({ items: [], total: 0, page: 1, limit: 24 }))
       .finally(() => setLoading(false));
-  }, [page, state, city, search, category, sortIndex, sort.value, sort.order, userCoords, locationError]);
+  }, [page, state, city, search, sortIndex, sort.value, sort.order, userCoords, locationError]);
 
   return (
     <div>
@@ -461,33 +458,9 @@ export function Home() {
       )}
 
       <div id="all-attractions" className="mb-8 scroll-mt-4">
-        <h2 className="font-display font-semibold text-2xl text-lbx-white tracking-tight mb-3">
+        <h2 className="font-display font-semibold text-2xl text-lbx-white tracking-tight mb-5">
           All attractions
         </h2>
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          <span className="text-[11px] font-medium text-lbx-muted/90 uppercase tracking-widest mr-1">Filter by type:</span>
-          {[
-            { slug: "", label: "All" },
-            { slug: "worlds-largest", label: "World's Largest" },
-            { slug: "muffler-man", label: "Muffler Man" },
-          ].map(({ slug, label }) => (
-            <button
-              key={slug || "all"}
-              type="button"
-              onClick={() => {
-                setCategory(slug);
-                setPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                category === slug
-                  ? "bg-lbx-green text-lbx-bg border border-lbx-green"
-                  : "bg-lbx-card border border-lbx-border text-lbx-muted hover:border-lbx-muted hover:text-lbx-text"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
           {isDistanceSort && userCoords == null && (
             <p className="text-sm text-lbx-muted mb-2">
               {locationError ? (
@@ -540,26 +513,6 @@ export function Home() {
               className="w-24 sm:w-28 px-0 py-2 bg-transparent border-0 border-b border-lbx-border/50 rounded-none text-lbx-white placeholder-lbx-muted/80 focus:border-lbx-muted focus:outline-none focus:ring-0 text-sm transition-colors"
               aria-label="Filter by city"
             />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-medium text-lbx-muted/90 uppercase tracking-widest">Type</span>
-            <select
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                setPage(1);
-              }}
-              className="pl-0 pr-6 py-2 bg-transparent border-0 border-b border-lbx-border/50 rounded-none text-lbx-white focus:border-lbx-muted focus:outline-none focus:ring-0 text-sm min-w-[100px] appearance-none bg-no-repeat bg-[length:10px] bg-[right_0_center] cursor-pointer transition-colors"
-              style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E\")" }}
-              aria-label="Filter by type"
-            >
-              <option value="">All</option>
-              {[...categories]
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map((c) => (
-                  <option key={c.id} value={c.slug}>{c.icon ?? ""} {c.name}</option>
-                ))}
-            </select>
           </div>
           <div className="flex items-center gap-2 ml-auto">
             <span className="text-[11px] font-medium text-lbx-muted/90 uppercase tracking-widest">Sort by</span>
