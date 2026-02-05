@@ -4,7 +4,7 @@ import { AttractionCard } from "../components/AttractionCard";
 import { CardGridSkeleton } from "../components/CardSkeleton";
 import { StarDisplay } from "../components/StarDisplay";
 import { useAuth } from "../context/AuthContext";
-import { attractions, friends, checkIns, getAvatarSrc, type Attraction, type Paginated, type FeedCheckIn, type CommentItem } from "../api";
+import { attractions, friends, checkIns, getAvatarSrc, type Attraction, type Category, type Paginated, type FeedCheckIn, type CommentItem } from "../api";
 import { SORT_OPTIONS } from "../constants/sortOptions";
 
 const HERO_IMAGE =
@@ -43,6 +43,10 @@ export function Home() {
 
   const sort = SORT_OPTIONS[sortIndex] ?? SORT_OPTIONS[0];
   const isDistanceSort = sort.value === "distance";
+
+  useEffect(() => {
+    attractions.categories().then((r) => setCategories(r.items)).catch(() => setCategories([]));
+  }, []);
 
   useEffect(() => {
     const q = searchParams.get("search");
