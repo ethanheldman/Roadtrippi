@@ -61,5 +61,5 @@ uploads/
 .cache/
 .vercel
 
-# Vercel build copy (server dist into api); do not commit
-api/server-dist/
+# Vercel build copy at root; do not commit
+server-dist/

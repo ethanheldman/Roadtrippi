@@ -19,10 +19,10 @@ function readRawBody(req: VercelRequest): Promise<Buffer> {
 }
 
 async function loadCreateApp(): Promise<() => Promise<FastifyApp>> {
-  // Vercel: server dist is copied to api/server-dist during build so the function bundle has it
-  const inApi = path.join(process.cwd(), "api", "server-dist", "app.js");
+  // Vercel: server dist is copied to server-dist at repo root during build (includeFiles in vercel.json)
+  const inServerDist = path.join(process.cwd(), "server-dist", "app.js");
   const inServer = path.join(process.cwd(), "server", "dist", "app.js");
-  for (const p of [inApi, inServer]) {
+  for (const p of [inServerDist, inServer]) {
     try {
       const mod = await import(pathToFileURL(p).href);
       return mod.createApp;
