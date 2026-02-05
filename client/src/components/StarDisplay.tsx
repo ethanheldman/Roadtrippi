@@ -19,7 +19,6 @@ export function StarDisplay({ value, max = 5, className = "", "aria-label": aria
       aria-label={ariaLabel ?? `Rated ${value} out of ${max}`}
     >
       {Array.from({ length: max }, (_, i) => {
-        const starValue = i + 1;
         const fillAmount = Math.min(1, Math.max(0, value - i));
         if (fillAmount >= 1) {
           return <span key={i} className={filledColor} aria-hidden>{FILLED}</span>;

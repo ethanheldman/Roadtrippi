@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import type { FastifyRequest, FastifyReply } from "fastify";
 
 const SALT_ROUNDS = 10;

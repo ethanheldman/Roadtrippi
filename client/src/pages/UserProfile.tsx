@@ -44,7 +44,25 @@ export function UserProfile() {
       users.get(id).catch(() => null),
       token ? friends.isFollowing(id).then((r) => r.following).catch(() => false) : Promise.resolve(false),
     ]).then(([p, f]) => {
-      setProfile(p ?? null);
+      if (p) {
+        const recentCheckIns: CheckInItem[] = Array.isArray(p.recentCheckIns) ? (p.recentCheckIns as CheckInItem[]) : [];
+        const profileData = {
+          id: p.id,
+          username: p.username,
+          avatarUrl: p.avatarUrl,
+          bio: p.bio,
+          location: p.location,
+          createdAt: p.createdAt,
+          checkInCount: p.checkInCount ?? 0,
+          listCount: p.listCount ?? 0,
+          followersCount: p.followersCount,
+          followingCount: p.followingCount,
+          recentCheckIns,
+        };
+        setProfile(profileData as NonNullable<typeof profile>);
+      } else {
+        setProfile(null);
+      }
       setFollowing(token ? f : null);
     }).finally(() => setLoading(false));
   }, [id, token, navigate]);

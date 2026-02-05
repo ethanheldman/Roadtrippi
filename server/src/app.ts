@@ -11,9 +11,17 @@ import { usersRoutes } from "./routes/users.js";
 import { checkInsRoutes } from "./routes/check-ins.js";
 import { listsRoutes } from "./routes/lists.js";
 
-const uploadsDir = path.join(process.cwd(), "uploads");
+// Serverless (e.g. Vercel) has read-only filesystem; use /tmp and skip mkdir if not writable
+const isVercel = typeof process.env.VERCEL !== "undefined";
+const uploadsDir = isVercel
+  ? path.join("/tmp", "uploads")
+  : path.join(process.cwd(), "uploads");
 const avatarsDir = path.join(uploadsDir, "avatars");
-fs.mkdirSync(avatarsDir, { recursive: true });
+try {
+  fs.mkdirSync(avatarsDir, { recursive: true });
+} catch {
+  // Ignore (e.g. read-only fs); uploads will not be persisted on serverless
+}
 
 export async function createApp() {
   const app = Fastify({ logger: true });

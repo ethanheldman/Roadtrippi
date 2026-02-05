@@ -13,7 +13,7 @@ type AddToListProps = {
 export function AddToList({ attractionId, onAdded, className = "", variant = "button" }: AddToListProps) {
   const { user } = useAuth();
   const [listsList, setListsList] = useState<ListSummary[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, _setLoading] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 

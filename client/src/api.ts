@@ -11,6 +11,7 @@ export async function api<T>(
   const token = getToken();
   const headers: HeadersInit = {
     "Content-Type": "application/json",
+    "X-Request-Path": path,
     ...(options.headers as Record<string, string>),
   };
   if (token) (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
@@ -178,6 +179,7 @@ export type RecentCheckIn = {
   createdAt: string;
   user: { id: string; username: string; avatarUrl: string | null };
   attraction?: { id: string; name: string; city: string | null; state: string };
+  likeCount?: number;
 };
 
 async function apiUpload<T>(path: string, formData: FormData): Promise<T> {

@@ -9,7 +9,6 @@ const MAX_SIZE_MB = 2;
 function isImageFile(file: File): boolean {
   return ALLOWED_IMAGE_TYPES.includes(file.type);
 }
-import { AttractionCard } from "../components/AttractionCard";
 import { EditRating } from "../components/EditRating";
 
 type CheckInItem = {

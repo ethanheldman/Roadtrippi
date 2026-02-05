@@ -40,7 +40,7 @@ const querySchema = z.object({
 
 type WhereAttraction = {
   state?: string;
-  city?: string;
+  city?: string | { contains: string };
   name?: { contains: string };
   attractionCategories?: { some: { category: { slug: string } } };
 };

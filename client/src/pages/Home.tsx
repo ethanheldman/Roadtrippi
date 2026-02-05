@@ -30,7 +30,7 @@ export function Home() {
   const [data, setData] = useState<Paginated<Attraction> | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, _setSearchParams] = useSearchParams();
   const [state, setState] = useState<string>("");
   const [city, setCity] = useState("");
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
@@ -112,7 +112,6 @@ export function Home() {
   }, [reviewDetailCheckIn?.id]);
 
   useEffect(() => {
-    const canFetchDistance = sort.value !== "distance" || userCoords != null;
     if (sort.value === "distance" && userCoords == null && !locationError) {
       setLoading(true);
       return;

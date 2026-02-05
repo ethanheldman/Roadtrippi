@@ -290,6 +290,7 @@ export async function usersRoutes(app: FastifyInstance) {
         attractionName?: string;
         listTitle?: string;
         commentSnippet?: string;
+        rating?: number | null;
       };
 
       const checkInIdsFromLikes = [...new Set(likesReview.map((l) => l.targetId))];

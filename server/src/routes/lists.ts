@@ -291,10 +291,10 @@ export async function listsRoutes(app: FastifyInstance) {
   );
 
   /** Update list */
-  app.patch<{ Params: { id: string } }>(
+  app.patch<{ Params: { id: string }; Body: unknown }>(
     "/:id",
     { preHandler: auth },
-    async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
+    async (request, reply) => {
       const { userId } = await requireAuth(
         request as FastifyRequest<{ Params?: Record<string, string> }>,
         reply
@@ -334,10 +334,10 @@ export async function listsRoutes(app: FastifyInstance) {
   );
 
   /** Add attraction to list */
-  app.post<{ Params: { id: string } }>(
+  app.post<{ Params: { id: string }; Body: unknown }>(
     "/:id/items",
     { preHandler: auth },
-    async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
+    async (request, reply) => {
       const { userId } = await requireAuth(
         request as FastifyRequest<{ Params?: Record<string, string> }>,
         reply

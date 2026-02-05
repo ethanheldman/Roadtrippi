@@ -1,12 +1,84 @@
+import path from "path";
+import { pathToFileURL } from "url";
 import { VercelRequest, VercelResponse } from "@vercel/node";
-import { createApp } from "../server/src/app.js";
 
-let appInstance: Awaited<ReturnType<typeof createApp>> | null = null;
+type FastifyApp = Awaited<ReturnType<typeof import("../server/dist/app.js").createApp>>;
+let appInstance: FastifyApp | null = null;
+
+async function loadCreateApp(): Promise<() => Promise<FastifyApp>> {
+  // Prefer explicit path from cwd so serverless runtime finds server/dist
+  const fromCwd = path.join(process.cwd(), "server", "dist", "app.js");
+  try {
+    const mod = await import(pathToFileURL(fromCwd).href);
+    return mod.createApp;
+  } catch {
+    // Fallback to relative import (e.g. local dev or bundled)
+    const mod = await import("../server/dist/app.js");
+    return mod.createApp;
+  }
+}
+
+function getPath(req: VercelRequest): string {
+  // Rewrite sends /api/(.*) -> /api?path=$1, so path param is in query
+  const pathParam = req.query?.path;
+  if (typeof pathParam === "string" && pathParam.length > 0) {
+    return "/api/" + pathParam;
+  }
+  const raw =
+    req.headers["x-request-path"] ??
+    req.headers["x-invoke-path"] ??
+    req.headers["x-url"] ??
+    req.url;
+  const path = Array.isArray(raw) ? raw[0] : raw;
+  return (typeof path === "string" && path.length > 0 ? path : undefined) ?? "/api";
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (!appInstance) {
-    appInstance = await createApp();
+  try {
+    if (!appInstance) {
+      const createApp = await loadCreateApp();
+      appInstance = await createApp();
+    }
+    await appInstance.ready();
+
+    const path = getPath(req);
+    const method = (req.method ?? "GET").toUpperCase();
+    const headers: Record<string, string> = {};
+    for (const [k, v] of Object.entries(req.headers)) {
+      if (v !== undefined && k.toLowerCase() !== "content-length") {
+        headers[k] = Array.isArray(v) ? v.join(", ") : String(v);
+      }
+    }
+    let payload: string | undefined;
+    if (req.body !== undefined && method !== "GET" && method !== "HEAD") {
+      payload = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+    }
+
+    const response = await appInstance.inject({
+      method,
+      url: path,
+      headers,
+      payload,
+    });
+
+    res.status(response.statusCode);
+    const resHeaders = response.headers;
+    if (resHeaders) {
+      for (const [key, value] of Object.entries(resHeaders)) {
+        if (value !== undefined && typeof value !== "function") {
+          const v = Array.isArray(value) ? value.join(", ") : String(value);
+          res.setHeader(key, v);
+        }
+      }
+    }
+    res.send(response.payload ?? "");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    console.error("API handler error:", message, stack);
+    res.status(500).json({
+      error: "Internal server error",
+      ...(process.env.VERCEL && { detail: message }),
+    });
   }
-  await appInstance.ready();
-  appInstance.server.emit("request", req, res);
 }

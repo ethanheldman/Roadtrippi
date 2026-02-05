@@ -58,9 +58,9 @@ export async function checkInsRoutes(app: FastifyInstance) {
     return reply.send({ items: checkIns });
   });
 
-  app.patch("/:id", { preHandler: auth }, async (request: FastifyRequest<{ Params?: { id?: string } }>, reply: FastifyReply) => {
+  app.patch<{ Params: { id: string } }>("/:id", { preHandler: auth }, async (request, reply) => {
     const { userId } = await requireAuth(request, reply);
-    const checkInId = request.params?.id;
+    const checkInId = request.params.id;
     if (!checkInId) return reply.status(400).send({ error: "Check-in ID required" });
     const body = updateBody.safeParse(request.body);
     if (!body.success) {
