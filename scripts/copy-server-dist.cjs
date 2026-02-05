@@ -2,6 +2,7 @@
 /** Copies server/dist to api/server-dist for Vercel API to load. */
 const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 
 // Resolve repo root from this script's location (scripts/copy-server-dist.cjs) so it works when cwd varies (e.g. Vercel)
 const root = path.resolve(__dirname, "..");
@@ -9,7 +10,16 @@ const src = path.join(root, "server", "dist");
 const dest = path.join(root, "api", "server-dist");
 
 if (!fs.existsSync(src)) {
-  console.error("Error: server/dist not found at " + src + " (cwd=" + process.cwd() + "). Run 'cd server && npx tsc' first.");
+  console.log("server/dist not found; running tsc in server...");
+  try {
+    execSync("npm run build", { cwd: path.join(root, "server"), stdio: "inherit" });
+  } catch (e) {
+    console.error("Error: server build failed. Run 'cd server && npx tsc' to see errors.");
+    process.exit(1);
+  }
+}
+if (!fs.existsSync(src)) {
+  console.error("Error: server/dist still not found at " + src);
   process.exit(1);
 }
 
