@@ -461,9 +461,33 @@ export function Home() {
       )}
 
       <div id="all-attractions" className="mb-8 scroll-mt-4">
-        <h2 className="font-display font-semibold text-2xl text-lbx-white tracking-tight mb-5">
+        <h2 className="font-display font-semibold text-2xl text-lbx-white tracking-tight mb-3">
           All attractions
         </h2>
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="text-[11px] font-medium text-lbx-muted/90 uppercase tracking-widest mr-1">Filter by type:</span>
+          {[
+            { slug: "", label: "All" },
+            { slug: "worlds-largest", label: "World's Largest" },
+            { slug: "muffler-man", label: "Muffler Man" },
+          ].map(({ slug, label }) => (
+            <button
+              key={slug || "all"}
+              type="button"
+              onClick={() => {
+                setCategory(slug);
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                category === slug
+                  ? "bg-lbx-green text-lbx-bg border border-lbx-green"
+                  : "bg-lbx-card border border-lbx-border text-lbx-muted hover:border-lbx-muted hover:text-lbx-text"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
           {isDistanceSort && userCoords == null && (
             <p className="text-sm text-lbx-muted mb-2">
               {locationError ? (

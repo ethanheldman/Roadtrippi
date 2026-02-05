@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Home } from "./pages/Home";
@@ -13,7 +13,6 @@ import { DiscoverPeople } from "./pages/DiscoverPeople";
 import { MyLists } from "./pages/MyLists";
 import { ListDetail } from "./pages/ListDetail";
 import { Map } from "./pages/Map";
-import { Inbox } from "./pages/Inbox";
 
 function App() {
   return (
@@ -35,7 +34,7 @@ function App() {
           <Route path="/people" element={<DiscoverPeople />} />
           <Route path="/lists" element={<MyLists />} />
           <Route path="/lists/:id" element={<ListDetail />} />
-          <Route path="/inbox" element={<Inbox />} />
+          <Route path="/inbox" element={<Navigate to="/profile/activity" replace />} />
           </Routes>
         </ErrorBoundary>
       </Layout>

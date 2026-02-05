@@ -55,15 +55,9 @@ export function Layout({ children }: { children: ReactNode }) {
                   Saved
                 </Link>
                 <Link
-                  to="/inbox"
-                  className={loc.pathname === "/inbox" ? "text-lbx-green" : "text-lbx-muted hover:text-lbx-white transition-colors"}
-                  title="Likes and comments on your content"
-                >
-                  Inbox
-                </Link>
-                <Link
                   to="/profile/friends"
                   className={loc.pathname.startsWith("/profile/") ? "text-lbx-green" : "text-lbx-muted hover:text-lbx-white transition-colors"}
+                  title="Friends, following, followers & activity"
                 >
                   Friends
                 </Link>
