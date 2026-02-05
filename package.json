@@ -25,6 +25,7 @@
     "db:generate": "cd server && npx prisma generate",
     "db:push": "cd server && npx prisma db push",
     "db:seed": "cd server && npx prisma db seed",
+    "db:seed:neon": "cd server && npx prisma db seed",
     "db:studio": "cd server && npx prisma studio",
     "tunnel": "npx localtunnel --port 5173"
   },

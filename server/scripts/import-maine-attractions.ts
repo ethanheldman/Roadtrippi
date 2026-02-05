@@ -225,11 +225,12 @@ async function main() {
   }
 
   console.log(`Maine attractions: created ${created}, skipped (already exist) ${skipped}.`);
+  await prisma.$disconnect();
 }
 
 main()
+  .then(() => process.exit(0))
   .catch((e) => {
     console.error(e);
     process.exit(1);
-  })
-  .finally(() => process.exit(0));
+  });

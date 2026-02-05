@@ -88,13 +88,28 @@ Your Prisma schema is currently SQLite. To use Neon:
 
    Use the **same** `DATABASE_URL` you set in Vercel (your Neon URL). That creates the tables in Neon.
 
-3. (Optional) Seed data:
+3. **Seed Neon (do this whenever you add or change seed data, including attractions):**  
+   Set `server/.env` so `DATABASE_URL` is your **Neon** connection string (same as in Vercel). Then from the repo root:
 
    ```bash
-   npx prisma db seed
+   npm run db:seed
    ```
+   or `npm run db:seed:neon`. This seeds categories, sample attractions, and all Maine attractions into Neon so the live site has them.
 
 4. Commit the schema change and redeploy on Vercel. The serverless function will use `DATABASE_URL` and `JWT_SECRET` from the project’s Environment Variables.
+
+---
+
+## 5. Seed Neon (always after adding or changing attractions)
+
+Whenever you add or update seed data (e.g. Maine attractions in `server/prisma/seed.ts`), run the seed **against Neon** so the live site has the data:
+
+1. In `server/.env`, set `DATABASE_URL` to your **Neon** connection string (same value as in Vercel).
+2. From the repo root run:
+   ```bash
+   npm run db:seed
+   ```
+   or `npm run db:seed:neon`. Existing records are skipped; new ones (e.g. new Maine attractions) are inserted.
 
 ---
 
@@ -104,4 +119,5 @@ Your Prisma schema is currently SQLite. To use Neon:
 - [ ] Create a Neon (or Turso) database and copy the URL.
 - [ ] If using Neon: change `provider` to `postgresql` in `schema.prisma`, then `prisma generate` and `prisma db push` (with Neon `DATABASE_URL`).
 - [ ] In Vercel: add `DATABASE_URL` and `JWT_SECRET` under Settings → Environment Variables.
+- [ ] **Run `npm run db:seed` with Neon as `DATABASE_URL` in server/.env** so production has categories and attractions (including Maine).
 - [ ] Redeploy the project.
