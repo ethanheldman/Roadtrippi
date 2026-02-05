@@ -63,10 +63,6 @@ export function Home() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    attractions.categories().then((r) => setCategories(r.items)).catch(() => setCategories([]));
-  }, []);
-
   // When "Closest to me" is selected, request geolocation once
   useEffect(() => {
     if (!isDistanceSort) return;

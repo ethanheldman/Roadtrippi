@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { friends, users, type UserSummary, type InboxItem, type FeedCheckIn } from "../api";
 import { StarDisplay } from "../components/StarDisplay";
 
-const TABS = ["friends", "following", "followers", "activity"] as const;
+const TABS = ["friends", "following", "followers"] as const;
 type Tab = (typeof TABS)[number];
 
 const FETCHERS = {
@@ -17,7 +17,6 @@ const TITLES: Record<Tab, string> = {
   friends: "Activity",
   following: "Following",
   followers: "Followers",
-  activity: "Feed",
 };
 
 function formatTime(iso: string): string {
@@ -185,21 +184,23 @@ export function PeopleList() {
       navigate("/login");
       return;
     }
-    if (currentTab === "activity") {
+    if (currentTab === "friends") {
+      setLoading(true);
       setActivityLoading(true);
       Promise.all([
-        users.inbox({ limit: 50 }),
-        friends.feed({ limit: 30 }),
+        friends.list().catch(() => ({ items: [] as UserSummary[] })),
+        users.inbox({ limit: 50 }).catch(() => ({ items: [] as InboxItem[] })),
+        friends.feed({ limit: 30 }).catch(() => ({ items: [] as FeedCheckIn[] })),
       ])
-        .then(([inboxRes, feedRes]) => {
+        .then(([friendsRes, inboxRes, feedRes]) => {
+          setItems(friendsRes.items);
           setInboxItems(inboxRes.items);
           setFeed(feedRes.items);
         })
-        .catch(() => {
-          setInboxItems([]);
-          setFeed([]);
-        })
-        .finally(() => setActivityLoading(false));
+        .finally(() => {
+          setLoading(false);
+          setActivityLoading(false);
+        });
       return;
     }
     setLoading(true);
@@ -231,48 +232,90 @@ export function PeopleList() {
         ))}
       </nav>
 
-      {currentTab === "activity" ? (
-        activityLoading ? (
+      {currentTab === "friends" ? (
+        loading || activityLoading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="bg-lbx-card rounded-lg border border-lbx-border p-4 skeleton h-20" />
             ))}
           </div>
-        ) : inboxItems.length === 0 && feed.length === 0 ? (
-          <div className="rounded-lg border border-lbx-border bg-lbx-card p-10 text-center">
-            <p className="text-lbx-text font-medium mb-1">No activity yet</p>
-            <p className="text-lbx-muted text-sm">
-              When someone follows you, likes or comments on your reviews or lists, or when people you follow check in, it will show up here.
-            </p>
-            <p className="text-lbx-muted text-sm mt-2">
-              <Link to="/people" className="text-lbx-green hover:underline">Find people to follow</Link>
-            </p>
-          </div>
         ) : (
           <div className="space-y-8">
-            {inboxItems.length > 0 && (
+            {(inboxItems.length > 0 || feed.length > 0) && (
+              <>
+                {inboxItems.length > 0 && (
+                  <section>
+                    <h2 className="font-display font-semibold text-lg text-lbx-white mb-3 tracking-tight">
+                      Likes & comments on your content
+                    </h2>
+                    <ul className="space-y-3">
+                      {inboxItems.map((item) => (
+                        <ActivityRow key={item.id} item={item} />
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                {feed.length > 0 && (
+                  <section>
+                    <h2 className="font-display font-semibold text-lg text-lbx-white mb-3 tracking-tight">
+                      From people you follow
+                    </h2>
+                    <ul className="space-y-3">
+                      {feed.map((c) => (
+                        <FeedRow key={c.id} c={c} />
+                      ))}
+                    </ul>
+                  </section>
+                )}
+              </>
+            )}
+            {items.length > 0 && (
               <section>
                 <h2 className="font-display font-semibold text-lg text-lbx-white mb-3 tracking-tight">
-                  Likes & comments on your content
+                  Friends
                 </h2>
                 <ul className="space-y-3">
-                  {inboxItems.map((item) => (
-                    <ActivityRow key={item.id} item={item} />
+                  {items.map((u) => (
+                    <li key={u.id}>
+                      <Link
+                        to={`/user/${u.id}`}
+                        className="flex items-center gap-4 bg-lbx-card rounded-lg border border-lbx-border p-4 hover:border-lbx-green/50 transition-colors"
+                      >
+                        {u.avatarUrl ? (
+                          <img
+                            src={u.avatarUrl}
+                            alt=""
+                            className="w-12 h-12 rounded-full object-cover bg-lbx-border"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-lbx-border flex items-center justify-center text-lbx-muted font-display text-lg">
+                            {u.username.slice(0, 1).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <span className="font-medium text-lbx-white">{u.username}</span>
+                          {(u.bio || u.location) && (
+                            <p className="text-sm text-lbx-muted truncate max-w-md">
+                              {[u.bio, u.location].filter(Boolean).join(" · ")}
+                            </p>
+                          )}
+                        </div>
+                      </Link>
+                    </li>
                   ))}
                 </ul>
               </section>
             )}
-            {feed.length > 0 && (
-              <section>
-                <h2 className="font-display font-semibold text-lg text-lbx-white mb-3 tracking-tight">
-                  From people you follow
-                </h2>
-                <ul className="space-y-3">
-                  {feed.map((c) => (
-                    <FeedRow key={c.id} c={c} />
-                  ))}
-                </ul>
-              </section>
+            {inboxItems.length === 0 && feed.length === 0 && items.length === 0 && (
+              <div className="rounded-lg border border-lbx-border bg-lbx-card p-10 text-center">
+                <p className="text-lbx-text font-medium mb-1">No activity yet</p>
+                <p className="text-lbx-muted text-sm">
+                  When someone follows you, likes or comments on your reviews or lists, or when people you follow check in, it will show up here. Follow people and have them follow you back to see friends.
+                </p>
+                <p className="text-lbx-muted text-sm mt-2">
+                  <Link to="/people" className="text-lbx-green hover:underline">Find people to follow</Link>
+                </p>
+              </div>
             )}
           </div>
         )
@@ -317,7 +360,6 @@ export function PeopleList() {
         <div className="rounded-lg border border-lbx-border bg-lbx-card p-10 text-center">
           <p className="text-lbx-text font-medium mb-1">No {TITLES[currentTab].toLowerCase()} yet</p>
           <p className="text-lbx-muted text-sm">
-            {currentTab === "friends" && "Follow people and have them follow you back to see friends here."}
             {currentTab === "following" && "Visit someone's profile and click Follow to see them here."}
             {currentTab === "followers" && "When others follow you, they'll show up here."}
           </p>
