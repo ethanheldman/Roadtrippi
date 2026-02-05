@@ -17,6 +17,7 @@
     "scrape:roadtrip": "tsx scripts/scrape.ts --state or wa nv az nm co ne sd wy ut --db",
     "import-scraped": "tsx scripts/import-scraped.ts",
     "import-muffler-man": "tsx scripts/import-muffler-man.ts",
+    "import-maine": "tsx scripts/import-maine-attractions.ts",
     "dedupe-eddie-world": "tsx scripts/dedupe-eddie-world.ts",
     "dedupe-paul-bunyan-bangor": "tsx scripts/dedupe-paul-bunyan-bangor.ts",
     "dedupe-fremont-troll": "tsx scripts/dedupe-fremont-troll.ts",
