@@ -40,8 +40,8 @@ const querySchema = z.object({
 
 type WhereAttraction = {
   state?: string;
-  city?: string | { contains: string };
-  name?: { contains: string };
+  city?: string | { contains: string; mode?: "insensitive" };
+  name?: { contains: string; mode?: "insensitive" };
   attractionCategories?: { some: { category: { slug: string } } };
 };
 
@@ -99,8 +99,8 @@ export async function attractionsRoutes(app: FastifyInstance) {
     const skip = (page - 1) * limit;
     const where: WhereAttraction = {};
     if (state) where.state = state;
-    if (city?.trim()) where.city = { contains: city.trim() };
-    if (search?.trim()) where.name = { contains: search.trim() };
+    if (city?.trim()) where.city = { contains: city.trim(), mode: "insensitive" };
+    if (search?.trim()) where.name = { contains: search.trim(), mode: "insensitive" };
     if (category?.trim()) where.attractionCategories = { some: { category: { slug: category.trim() } } };
 
     const userLat = lat != null ? parseFloat(lat) : null;
