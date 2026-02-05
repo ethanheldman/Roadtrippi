@@ -60,6 +60,3 @@ uploads/
 *.temp
 .cache/
 .vercel
-
-# Vercel build copy at root; do not commit
-server-dist/

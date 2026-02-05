@@ -19,19 +19,14 @@ function readRawBody(req: VercelRequest): Promise<Buffer> {
 }
 
 async function loadCreateApp(): Promise<() => Promise<FastifyApp>> {
-  // Vercel: server dist is copied to server-dist at repo root during build (includeFiles in vercel.json)
-  const inServerDist = path.join(process.cwd(), "server-dist", "app.js");
-  const inServer = path.join(process.cwd(), "server", "dist", "app.js");
-  for (const p of [inServerDist, inServer]) {
-    try {
-      const mod = await import(pathToFileURL(p).href);
-      return mod.createApp;
-    } catch {
-      continue;
-    }
+  const fromCwd = path.join(process.cwd(), "server", "dist", "app.js");
+  try {
+    const mod = await import(pathToFileURL(fromCwd).href);
+    return mod.createApp;
+  } catch {
+    const mod = await import("../server/dist/app.js");
+    return mod.createApp;
   }
-  const mod = await import("../server/dist/app.js");
-  return mod.createApp;
 }
 
 /** Build full request URL (path + query) for Fastify inject so pagination/sort/filters work on Vercel */
