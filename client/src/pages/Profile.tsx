@@ -126,7 +126,8 @@ export function Profile() {
     setUploadingAvatar(true);
     try {
       const { avatarUrl } = await users.uploadAvatar(file);
-      setEditAvatarUrl(avatarUrl);
+      // Cache-bust so the new image displays immediately
+      setEditAvatarUrl(avatarUrl + (avatarUrl.includes("?") ? "&" : "?") + "t=" + Date.now());
       await refresh();
     } catch (e) {
       setAvatarError((e as Error).message);

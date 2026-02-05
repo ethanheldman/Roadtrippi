@@ -66,6 +66,8 @@ async function main() {
     });
   }
 
+  const skipGeocode = process.env.SKIP_GEOCODE === "1" || process.env.SKIP_GEOCODE === "true";
+  if (skipGeocode) console.log("SKIP_GEOCODE=1: importing only, no geocoding.");
   console.log(`Importing ${data.length} attractions from scraped.json...`);
   let created = 0;
   let updated = 0;
@@ -99,12 +101,14 @@ async function main() {
         },
       });
       created++;
-      const coords = await geocodeAttraction({ address: a.address, city, state });
-      if (coords) {
-        await prisma.attraction.update({
-          where: { id: att.id },
-          data: { latitude: coords.lat, longitude: coords.lon },
-        });
+      if (!skipGeocode) {
+        const coords = await geocodeAttraction({ address: a.address, city, state });
+        if (coords) {
+          await prisma.attraction.update({
+            where: { id: att.id },
+            data: { latitude: coords.lat, longitude: coords.lon },
+          });
+        }
       }
     } else {
       // Don't overwrite existing image with null (preserve seed/manual images)
@@ -121,7 +125,7 @@ async function main() {
         },
       });
       updated++;
-      if (att.latitude == null || att.longitude == null) {
+      if (!skipGeocode && (att.latitude == null || att.longitude == null)) {
         const coords = await geocodeAttraction({
           address: a.address,
           city,

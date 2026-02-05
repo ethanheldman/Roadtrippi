@@ -59,12 +59,15 @@ export function AttractionCard({ a }: AttractionCardProps) {
             <h3 className="font-display font-semibold text-lbx-white text-sm leading-tight line-clamp-2 group-hover:text-lbx-green transition-colors">
               {a.name}
             </h3>
-            <div className="min-h-[1.25rem] mt-1">
-              <p className="text-xs text-lbx-muted truncate">
-                {(a.city || a.state) ? [a.city, a.state].filter(Boolean).join(", ") : "\u00A0"}
-              </p>
+            {/* Location: city, state; distance when user location available */}
+            <div className="min-h-[2rem] mt-1.5 flex flex-col gap-0.5">
+              {(a.city != null || a.state != null) && (
+                <p className="text-xs text-lbx-muted truncate" title="Location">
+                  {[a.city, a.state].filter(Boolean).join(", ")}
+                </p>
+              )}
               {a.distanceMiles != null && a.distanceMiles >= 0 && (
-                <p className="text-xs text-lbx-green/90 mt-0.5">
+                <p className="text-xs text-lbx-green/90">
                   {a.distanceMiles < 0.1 ? "< 0.1" : a.distanceMiles.toFixed(1)} mi away
                 </p>
               )}

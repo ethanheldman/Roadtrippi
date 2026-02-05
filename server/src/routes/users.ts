@@ -1,12 +1,20 @@
 import path from "path";
 import fs from "fs";
-import { pipeline } from "stream/promises";
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../lib/auth.js";
 
-const AVATAR_DIR = path.join(process.cwd(), "uploads", "avatars");
+// Use same base as app.ts so static files are served from where we write (important for Vercel /tmp)
+const isVercel = typeof process.env.VERCEL !== "undefined";
+const AVATAR_DIR = isVercel
+  ? path.join("/tmp", "uploads", "avatars")
+  : path.join(process.cwd(), "uploads", "avatars");
+try {
+  fs.mkdirSync(AVATAR_DIR, { recursive: true });
+} catch {
+  // Ignore if read-only (e.g. serverless)
+}
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const EXT_BY_MIME: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
@@ -69,9 +77,11 @@ export async function usersRoutes(app: FastifyInstance) {
   // --- Upload avatar (multipart) ---
   app.post("/me/avatar", { preHandler: auth }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = await requireAuth(request as FastifyRequest<{ Params?: Record<string, string> }>, reply);
-    const data = await (request as unknown as { file: () => Promise<{ file: NodeJS.ReadableStream; mimetype: string; filename: string }> }).file();
-    if (!data) return reply.status(400).send({ error: "No file uploaded" });
-    const mimetype = data.mimetype;
+    const part = await (request as unknown as { file: () => Promise<{ type?: string; file: NodeJS.ReadableStream; mimetype: string; filename: string; toBuffer: () => Promise<Buffer> } | undefined> }).file();
+    if (!part || part.type !== "file") {
+      return reply.status(400).send({ error: "No file uploaded. Choose a JPEG, PNG, or WebP image." });
+    }
+    const mimetype = part.mimetype;
     if (!ALLOWED_TYPES.has(mimetype)) {
       return reply.status(400).send({ error: "Invalid file type. Use JPEG, PNG, or WebP." });
     }
@@ -79,7 +89,8 @@ export async function usersRoutes(app: FastifyInstance) {
     const filename = `${userId}.${ext}`;
     const dest = path.join(AVATAR_DIR, filename);
     try {
-      await pipeline(data.file, fs.createWriteStream(dest));
+      const buffer = await part.toBuffer();
+      fs.writeFileSync(dest, buffer);
     } catch (err) {
       request.log.error(err);
       return reply.status(500).send({ error: "Failed to save image" });

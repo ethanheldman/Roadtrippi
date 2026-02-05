@@ -105,8 +105,8 @@ export const attractions = {
     lng?: number;
   }) => {
     const q = new URLSearchParams();
-    if (params?.page) q.set("page", String(params.page));
-    if (params?.limit) q.set("limit", String(params.limit));
+    q.set("page", String(params?.page ?? 1));
+    q.set("limit", String(params?.limit ?? 24));
     if (params?.state) q.set("state", params.state);
     if (params?.city) q.set("city", params.city);
     if (params?.search) q.set("search", params.search);
@@ -187,12 +187,12 @@ async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
   const headers: HeadersInit = {};
   if (token) (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`${API}${path}`, { method: "POST", body: formData, headers });
+  const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string; avatarUrl?: string };
   if (!res.ok) {
-    const err = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
-    const msg = err.message ?? err.error ?? res.statusText;
+    const msg = body.error ?? body.message ?? res.statusText;
     throw new Error(msg);
   }
-  return res.json() as Promise<T>;
+  return body as T;
 }
 
 export type InboxItem = {

@@ -26,7 +26,7 @@ function distanceMiles(
 
 const querySchema = z.object({
   page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(100).default(20),
+  limit: z.coerce.number().min(1).max(100).default(24),
   state: z.string().length(2).optional(),
   city: z.string().max(100).optional(),
   search: z.string().optional(),
