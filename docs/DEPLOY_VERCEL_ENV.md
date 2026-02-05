@@ -52,13 +52,16 @@ You’ll add this in Vercel in step 3 below.
 2. Go to **Settings** → **Environment Variables**.
 3. Add:
 
-   | Name           | Value                    | Environments      |
-   |----------------|--------------------------|-------------------|
-   | `DATABASE_URL` | Your Neon (or DB) URL    | Production, Preview (optional) |
-   | `JWT_SECRET`   | Your long random string  | Production, Preview (optional) |
+   | Name                     | Value                    | Environments      |
+   |--------------------------|--------------------------|-------------------|
+   | `DATABASE_URL`           | Your Neon (or DB) URL    | Production, Preview (optional) |
+   | `JWT_SECRET`             | Your long random string  | Production, Preview (optional) |
+   | `BLOB_READ_WRITE_TOKEN`  | (optional) From Vercel Blob store | Production, Preview (optional) |
 
-4. Click **Save**.
-5. **Redeploy** the app (Deployments → … on latest → Redeploy) so the new env vars are used.
+4. **Profile pictures (Vercel Blob):** To persist avatar uploads on Vercel, create a Blob store: Vercel Dashboard → your project → **Storage** → **Create** → **Blob**. The store creates `BLOB_READ_WRITE_TOKEN` automatically. Add it to Environment Variables (or link the store so the token is available). Without it, avatar uploads are stored in `/tmp` and are not persisted.
+
+5. Click **Save**.
+6. **Redeploy** the app (Deployments → … on latest → Redeploy) so the new env vars are used.
 
 ---
 

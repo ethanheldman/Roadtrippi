@@ -2,6 +2,7 @@ import path from "path";
 import fs from "fs";
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
+import { put } from "@vercel/blob";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../lib/auth.js";
 
@@ -102,19 +103,40 @@ export async function usersRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: "Invalid file type. Use JPEG, PNG, or WebP." });
     }
     const ext = EXT_BY_MIME[mimetype] ?? "jpg";
-    const filename = `${userId}.${ext}`;
-    const dest = path.join(AVATAR_DIR, filename);
-    try {
-      const buffer = await part.toBuffer();
-      if (!buffer || buffer.length === 0) {
-        return reply.status(400).send({ error: "Uploaded file is empty. Choose a valid image." });
-      }
-      fs.writeFileSync(dest, buffer);
-    } catch (err) {
-      request.log.error(err);
-      return reply.status(500).send({ error: "Failed to save image" });
+    const buffer = await part.toBuffer();
+    if (!buffer || buffer.length === 0) {
+      return reply.status(400).send({ error: "Uploaded file is empty. Choose a valid image." });
     }
-    const avatarUrl = `/uploads/avatars/${filename}`;
+
+    let avatarUrl: string;
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+    if (blobToken) {
+      try {
+        const pathname = `avatars/${userId}.${ext}`;
+        const blob = await put(pathname, buffer, {
+          access: "public",
+          contentType: mimetype,
+          token: blobToken,
+          addRandomSuffix: false,
+          allowOverwrite: true,
+        });
+        avatarUrl = blob.url;
+      } catch (err) {
+        request.log.error(err);
+        return reply.status(500).send({ error: "Failed to upload image" });
+      }
+    } else {
+      const filename = `${userId}.${ext}`;
+      const dest = path.join(AVATAR_DIR, filename);
+      try {
+        fs.writeFileSync(dest, buffer);
+      } catch (err) {
+        request.log.error(err);
+        return reply.status(500).send({ error: "Failed to save image" });
+      }
+      avatarUrl = `/uploads/avatars/${filename}`;
+    }
+
     await prisma.user.update({
       where: { id: userId },
       data: { avatarUrl },
