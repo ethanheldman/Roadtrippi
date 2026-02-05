@@ -1,12 +1,12 @@
 import path from "path";
 import { pathToFileURL } from "url";
 import { VercelRequest, VercelResponse } from "@vercel/node";
+import type { FastifyInstance } from "fastify";
 
 /** Disable body parsing so we can pass raw multipart (file upload) body to Fastify */
 export const config = { api: { bodyParser: false } };
 
-type FastifyApp = Awaited<ReturnType<typeof import("../server/dist/app.js").createApp>>;
-let appInstance: FastifyApp | null = null;
+let appInstance: FastifyInstance | null = null;
 
 /** Read raw request body from stream (required when bodyParser is false; needed for multipart uploads) */
 function readRawBody(req: VercelRequest): Promise<Buffer> {
@@ -18,15 +18,22 @@ function readRawBody(req: VercelRequest): Promise<Buffer> {
   });
 }
 
-async function loadCreateApp(): Promise<() => Promise<FastifyApp>> {
-  const fromCwd = path.join(process.cwd(), "server", "dist", "app.js");
-  try {
-    const mod = await import(pathToFileURL(fromCwd).href);
-    return mod.createApp;
-  } catch {
-    const mod = await import("../server/dist/app.js");
-    return mod.createApp;
+async function loadCreateApp(): Promise<() => Promise<FastifyInstance>> {
+  // On Vercel the function runs from /var/task; server/dist is copied to api/server-dist at build time
+  const paths = [
+    path.join(__dirname, "server-dist", "app.js"),
+    path.join(process.cwd(), "server", "dist", "app.js"),
+    path.join(process.cwd(), "api", "server-dist", "app.js"),
+  ];
+  for (const appPath of paths) {
+    try {
+      const mod = await import(pathToFileURL(appPath).href);
+      if (mod?.createApp) return mod.createApp;
+    } catch {
+      continue;
+    }
   }
+  throw new Error(`Could not find server app. Tried: ${paths.join(", ")}`);
 }
 
 /** Build full request URL (path + query) for Fastify inject so pagination/sort/filters work on Vercel */
