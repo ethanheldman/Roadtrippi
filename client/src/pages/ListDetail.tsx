@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { lists, type ListDetail as ListDetailType, type ListItemWithAttraction, type CommentItem } from "../api";
+import { lists, getAvatarSrc, type ListDetail as ListDetailType, type ListItemWithAttraction, type CommentItem } from "../api";
 import { AttractionCard } from "../components/AttractionCard";
 import { SORT_OPTIONS } from "../constants/sortOptions";
 
@@ -267,7 +267,7 @@ export function ListDetail() {
                     className="flex-shrink-0 flex items-center gap-2 text-lbx-muted/90 hover:text-lbx-green transition-colors"
                   >
                     {com.user.avatarUrl ? (
-                      <img src={com.user.avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover" />
+                      <img src={getAvatarSrc(com.user.avatarUrl)} alt="" className="w-6 h-6 rounded-full object-cover" />
                     ) : (
                       <span className="w-6 h-6 rounded-full bg-lbx-border/80 flex items-center justify-center text-[10px] font-display">
                         {com.user.username.slice(0, 1).toUpperCase()}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useLocation, useNavigate } from "react-router-dom";
-import { users, type UserSummary, type ListSummary } from "../api";
+import { users, getAvatarSrc, type UserSummary, type ListSummary } from "../api";
 
 const TABS = ["following", "followers", "lists"] as const;
 type Tab = (typeof TABS)[number];
@@ -104,7 +104,7 @@ export function UserTab() {
               >
                 {u.avatarUrl ? (
                   <img
-                    src={u.avatarUrl}
+                    src={getAvatarSrc(u.avatarUrl)}
                     alt=""
                     className="w-12 h-12 rounded-full object-cover bg-lbx-border"
                   />

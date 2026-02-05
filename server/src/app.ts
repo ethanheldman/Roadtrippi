@@ -27,7 +27,7 @@ export async function createApp() {
   const app = Fastify({ logger: true });
 
   await app.register(cors, { origin: true });
-  await app.register(fastifyStatic, { root: uploadsDir, prefix: "/uploads/" });
+  await app.register(fastifyStatic, { root: uploadsDir, prefix: "/api/uploads/" });
   await app.register(fjwt, {
     secret: process.env.JWT_SECRET ?? "dev-secret-min-32-characters-long",
   });

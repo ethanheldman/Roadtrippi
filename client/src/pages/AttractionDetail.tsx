@@ -1,7 +1,7 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { attractions, checkIns, type AttractionDetail as AttractionDetailType } from "../api";
+import { attractions, checkIns, getAvatarSrc, type AttractionDetail as AttractionDetailType } from "../api";
 import { AddToList } from "../components/AddToList";
 import { SaveToWantToSee } from "../components/SaveToWantToSee";
 import { EditCheckIn } from "../components/EditCheckIn";
@@ -202,7 +202,7 @@ export function AttractionDetail() {
                         >
                           {c.user.avatarUrl ? (
                             <img
-                              src={c.user.avatarUrl}
+                              src={getAvatarSrc(c.user.avatarUrl)}
                               alt=""
                               className="w-8 h-8 rounded-full object-cover bg-lbx-border"
                             />
@@ -280,7 +280,7 @@ export function AttractionDetail() {
                         >
                           {c.user.avatarUrl ? (
                             <img
-                              src={c.user.avatarUrl}
+                              src={getAvatarSrc(c.user.avatarUrl)}
                               alt=""
                               className="w-8 h-8 rounded-full object-cover bg-lbx-border"
                             />

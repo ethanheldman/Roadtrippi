@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { users, friends, type InboxItem, type FeedCheckIn } from "../api";
+import { users, friends, getAvatarSrc, type InboxItem, type FeedCheckIn } from "../api";
 import { StarDisplay } from "../components/StarDisplay";
 
 function formatTime(iso: string): string {
@@ -111,7 +111,7 @@ function FriendsRow({ c }: { c: FeedCheckIn }) {
       <Link to={`/user/${c.user.id}`} className="shrink-0">
         {c.user.avatarUrl ? (
           <img
-            src={c.user.avatarUrl}
+            src={getAvatarSrc(c.user.avatarUrl)}
             alt=""
             className="w-8 h-8 rounded-full object-cover bg-lbx-border"
           />

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { friends, users, type UserSummary, type InboxItem, type FeedCheckIn } from "../api";
+import { friends, users, getAvatarSrc, type UserSummary, type InboxItem, type FeedCheckIn } from "../api";
 import { StarDisplay } from "../components/StarDisplay";
 
 const TABS = ["friends", "following", "followers"] as const;
@@ -73,7 +73,7 @@ function ActivityRow({ item }: { item: InboxItem & { rating?: number | null } })
         <Link to={`/user/${item.actor.id}`} className="shrink-0">
           {item.actor.avatarUrl ? (
             <img
-              src={item.actor.avatarUrl}
+              src={getAvatarSrc(item.actor.avatarUrl)}
               alt=""
               className="w-12 h-12 rounded-full object-cover bg-lbx-border"
             />
@@ -283,7 +283,7 @@ export function PeopleList() {
                       >
                         {u.avatarUrl ? (
                           <img
-                            src={u.avatarUrl}
+                            src={getAvatarSrc(u.avatarUrl)}
                             alt=""
                             className="w-12 h-12 rounded-full object-cover bg-lbx-border"
                           />
@@ -335,7 +335,7 @@ export function PeopleList() {
               >
                 {u.avatarUrl ? (
                   <img
-                    src={u.avatarUrl}
+                    src={getAvatarSrc(u.avatarUrl)}
                     alt=""
                     className="w-12 h-12 rounded-full object-cover bg-lbx-border"
                   />

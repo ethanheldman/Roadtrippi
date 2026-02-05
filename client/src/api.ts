@@ -1,5 +1,12 @@
 const API = ""; // same origin via Vite proxy
 
+/** Resolve avatar URL for img src so uploads are requested via the API (same-origin /api/uploads/). */
+export function getAvatarSrc(avatarUrl: string | null | undefined): string {
+  if (!avatarUrl) return "";
+  if (avatarUrl.startsWith("http")) return avatarUrl;
+  return "/api" + (avatarUrl.startsWith("/") ? avatarUrl : "/" + avatarUrl);
+}
+
 function getToken(): string | null {
   return localStorage.getItem("token");
 }

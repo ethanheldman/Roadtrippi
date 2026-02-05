@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { checkIns, friends, users } from "../api";
+import { checkIns, friends, users, getAvatarSrc } from "../api";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE_MB = 2;
@@ -600,7 +600,7 @@ export function Profile() {
                     <>
                       {editAvatarUrl ? (
                         <img
-                          src={editAvatarUrl}
+                          src={getAvatarSrc(editAvatarUrl)}
                           alt=""
                           className="w-16 h-16 rounded-full object-cover border-2 border-lbx-border mb-2"
                         />

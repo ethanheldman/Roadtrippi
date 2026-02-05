@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { users, friends, type UserSummary } from "../api";
+import { users, friends, getAvatarSrc, type UserSummary } from "../api";
 
 export function DiscoverPeople() {
   const { user: me, token, refresh } = useAuth();
@@ -152,7 +152,7 @@ export function DiscoverPeople() {
                     >
                       {u.avatarUrl ? (
                         <img
-                          src={u.avatarUrl}
+                          src={getAvatarSrc(u.avatarUrl)}
                           alt=""
                           className="w-12 h-12 rounded-full object-cover bg-lbx-border shrink-0"
                         />

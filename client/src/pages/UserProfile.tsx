@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { users, friends } from "../api";
+import { users, friends, getAvatarSrc } from "../api";
 
 type CheckInItem = {
   id: string;
@@ -172,7 +172,7 @@ export function UserProfile() {
           <div className="flex-shrink-0">
             {profile.avatarUrl ? (
               <img
-                src={profile.avatarUrl}
+                src={getAvatarSrc(profile.avatarUrl)}
                 alt=""
                 className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-lbx-dark shadow-lg"
               />
