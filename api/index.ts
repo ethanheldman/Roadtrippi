@@ -42,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await appInstance.ready();
 
     const path = getPath(req);
-    const method = (req.method ?? "GET").toUpperCase();
+    const method = (req.method ?? "GET").toUpperCase() as "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
     const headers: Record<string, string> = {};
     for (const [k, v] of Object.entries(req.headers)) {
       if (v !== undefined && k.toLowerCase() !== "content-length") {
@@ -54,12 +54,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       payload = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
     }
 
-    const response = await appInstance.inject({
+    const response = (await appInstance.inject({
       method,
       url: path,
       headers,
       payload,
-    });
+    })) as { statusCode: number; headers: Record<string, string | string[] | undefined>; payload: string | Buffer };
 
     res.status(response.statusCode);
     const resHeaders = response.headers;
