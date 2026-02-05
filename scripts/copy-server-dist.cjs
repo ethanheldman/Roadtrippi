@@ -1,14 +1,15 @@
 #!/usr/bin/env node
-/** Copies server/dist to api/server-dist for Vercel API to load. Run from repo root. */
+/** Copies server/dist to api/server-dist for Vercel API to load. */
 const fs = require("fs");
 const path = require("path");
 
-const root = process.cwd();
+// Resolve repo root from this script's location (scripts/copy-server-dist.cjs) so it works when cwd varies (e.g. Vercel)
+const root = path.resolve(__dirname, "..");
 const src = path.join(root, "server", "dist");
 const dest = path.join(root, "api", "server-dist");
 
 if (!fs.existsSync(src)) {
-  console.error("Error: server/dist not found. Run 'cd server && npx tsc' first.");
+  console.error("Error: server/dist not found at " + src + " (cwd=" + process.cwd() + "). Run 'cd server && npx tsc' first.");
   process.exit(1);
 }
 
