@@ -18,6 +18,19 @@ const STATES = [
   "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
 ];
 
+const STATE_LABELS: Record<string, string> = {
+  AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California",
+  CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia",
+  HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa", KS: "Kansas",
+  KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland", MA: "Massachusetts",
+  MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri", MT: "Montana",
+  NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico",
+  NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio", OK: "Oklahoma",
+  OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota",
+  TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington",
+  WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
+};
+
 export function Home() {
   const { user } = useAuth();
   const [feed, setFeed] = useState<FeedCheckIn[]>([]);
@@ -112,15 +125,8 @@ export function Home() {
   }, [reviewDetailCheckIn?.id]);
 
   useEffect(() => {
-    if (sort.value === "distance" && userCoords == null && !locationError) {
-      setLoading(true);
-      return;
-    }
-    if (sort.value === "distance" && userCoords == null) {
-      setData({ items: [], total: 0, page: 1, limit: 24 });
-      setLoading(false);
-      return;
-    }
+    // When "Closest to me" is selected but we don't have location, fetch by name so state/city filters still work
+    const useDistanceSort = sort.value === "distance" && userCoords != null;
     setLoading(true);
     attractions
       .list({
@@ -130,7 +136,7 @@ export function Home() {
         city: city.trim() || undefined,
         category: category.trim() || undefined,
         search: search || undefined,
-        sortBy: sort.value,
+        sortBy: useDistanceSort ? "distance" : (sort.value === "distance" ? "name" : sort.value),
         sortOrder: sort.order,
         lat: userCoords?.lat,
         lng: userCoords?.lng,
@@ -497,9 +503,9 @@ export function Home() {
               style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E\")" }}
               aria-label="Filter by state"
             >
-              <option value="">All</option>
+              <option value="">All states</option>
               {STATES.map((s) => (
-                <option key={s} value={s}>{s}</option>
+                <option key={s} value={s}>{STATE_LABELS[s] ?? s} ({s})</option>
               ))}
             </select>
           </div>
