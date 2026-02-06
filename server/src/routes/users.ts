@@ -63,7 +63,7 @@ export async function usersRoutes(app: FastifyInstance) {
           where,
           skip,
           take: limit,
-          orderBy: { username: "asc" },
+          orderBy: [{ followers: { _count: "desc" } }, { username: "asc" }],
           select: {
             id: true,
             username: true,
