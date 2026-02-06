@@ -246,10 +246,91 @@ export async function attractionsRoutes(app: FastifyInstance) {
       return reply.send({ items, total, page, limit });
     }
 
-    const orderBy =
-      sortBy === "visitCount"
-        ? ({ checkIns: { _count: sortOrder } } as const)
-        : ({ [sortBy]: sortOrder } as { name?: "asc" | "desc"; state?: "asc" | "desc"; city?: "asc" | "desc"; createdAt?: "asc" | "desc" });
+    // Most/least popular: sort by number of ratings (reviews) first, then by avg rating for ties
+    if (sortBy === "visitCount") {
+      const matching = await prisma.attraction.findMany({
+        where,
+        select: { id: true },
+      });
+      const allIds = matching.map((a) => a.id);
+      const total = allIds.length;
+
+      const ratingStats =
+        allIds.length > 0
+          ? await prisma.checkIn.groupBy({
+              by: ["attractionId"],
+              _avg: { rating: true },
+              _count: { id: true },
+              where: { attractionId: { in: allIds }, rating: { not: null } },
+            })
+          : [];
+      const avgByAttraction: Record<string, number> = {};
+      const countByAttraction: Record<string, number> = {};
+      for (const id of allIds) {
+        avgByAttraction[id] = 0;
+        countByAttraction[id] = 0;
+      }
+      for (const s of ratingStats) {
+        avgByAttraction[s.attractionId] =
+          s._avg.rating != null ? Math.round(s._avg.rating * 10) / 10 : 0;
+        countByAttraction[s.attractionId] = s._count.id;
+      }
+
+      const sortedIds = [...allIds].sort((a, b) => {
+        const countA = countByAttraction[a] ?? 0;
+        const countB = countByAttraction[b] ?? 0;
+        if (countA !== countB) {
+          return sortOrder === "desc" ? countB - countA : countA - countB;
+        }
+        const avgA = avgByAttraction[a] ?? 0;
+        const avgB = avgByAttraction[b] ?? 0;
+        return sortOrder === "desc" ? avgB - avgA : avgA - avgB;
+      });
+      const pageIds = sortedIds.slice(skip, skip + limit);
+
+      const attractions = await prisma.attraction.findMany({
+        where: { id: { in: pageIds } },
+        include: {
+          attractionCategories: { include: { category: true } },
+          _count: { select: { checkIns: true } },
+        },
+      });
+      const orderIndex = Object.fromEntries(pageIds.map((id, i) => [id, i]));
+      attractions.sort((a, b) => orderIndex[a.id]! - orderIndex[b.id]!);
+
+      const items = attractions.map((a) => {
+        const { city, state } = resolveCityState(a.city, a.state, a.address);
+        const avg = avgByAttraction[a.id] ?? 0;
+        const dist =
+          hasUserLocation && a.latitude != null && a.longitude != null
+            ? distanceMiles(userLat!, userLng!, a.latitude, a.longitude)
+            : null;
+        return {
+          id: a.id,
+          name: a.name,
+          description: a.description,
+          city,
+          state,
+          latitude: a.latitude?.toString(),
+          longitude: a.longitude?.toString(),
+          imageUrl: a.imageUrl ?? undefined,
+          sourceUrl: a.sourceUrl,
+          visitCount: a._count.checkIns,
+          avgRating: avg > 0 ? avg : null,
+          ratingCount: countByAttraction[a.id] ?? 0,
+          categories: a.attractionCategories.map((ac) => ac.category).sort((a, b) => a.name.localeCompare(b.name)),
+          ...(dist != null && { distanceMiles: dist }),
+        };
+      });
+      return reply.send({ items, total, page, limit });
+    }
+
+    const orderBy = { [sortBy]: sortOrder } as {
+      name?: "asc" | "desc";
+      state?: "asc" | "desc";
+      city?: "asc" | "desc";
+      createdAt?: "asc" | "desc";
+    };
 
     const [attractions, total] = await Promise.all([
       prisma.attraction.findMany({
