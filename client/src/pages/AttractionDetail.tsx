@@ -228,10 +228,7 @@ export function AttractionDetail() {
                           <span className="font-medium text-lbx-white">{c.user.username || "User"}</span>
                         </Link>
                       )}
-                      <span className="text-lbx-muted text-sm">
-                        ♥ {c.likeCount ?? 0} {(c.likeCount ?? 0) === 1 ? "like" : "likes"}
-                      </span>
-                      {user && c.user?.id !== user.id && (
+                      {user && c.user?.id !== user.id ? (
                         <button
                           type="button"
                           disabled={likeLoadingId === c.id}
@@ -252,8 +249,12 @@ export function AttractionDetail() {
                           aria-label={c.likedByMe ? "Unlike" : "Like"}
                         >
                           <span className={c.likedByMe ? "text-lbx-green" : ""}>{c.likedByMe ? "♥" : "♡"}</span>
-                          {c.likedByMe ? "Liked" : "Like"}
+                          <span>{c.likeCount ?? 0}</span>
                         </button>
+                      ) : (
+                        <span className="text-lbx-muted text-sm">
+                          ♥ {c.likeCount ?? 0}
+                        </span>
                       )}
                     </div>
                     {user && c.user?.id === user.id ? (
@@ -328,10 +329,7 @@ export function AttractionDetail() {
                           <span className="font-medium text-lbx-white">{c.user.username || "User"}</span>
                         </Link>
                       )}
-                      <span className="text-lbx-muted text-sm">
-                        ♥ {c.likeCount ?? 0} {(c.likeCount ?? 0) === 1 ? "like" : "likes"}
-                      </span>
-                      {user && c.user?.id !== user.id && (
+                      {user && c.user?.id !== user.id ? (
                         <button
                           type="button"
                           disabled={likeLoadingId === c.id}
@@ -352,8 +350,12 @@ export function AttractionDetail() {
                           aria-label={c.likedByMe ? "Unlike" : "Like"}
                         >
                           <span className={c.likedByMe ? "text-lbx-green" : ""}>{c.likedByMe ? "♥" : "♡"}</span>
-                          {c.likedByMe ? "Liked" : "Like"}
+                          <span>{c.likeCount ?? 0}</span>
                         </button>
+                      ) : (
+                        <span className="text-lbx-muted text-sm">
+                          ♥ {c.likeCount ?? 0}
+                        </span>
                       )}
                     </div>
                     {user && c.user?.id === user.id ? (
