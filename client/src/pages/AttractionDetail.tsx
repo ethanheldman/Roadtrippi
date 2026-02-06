@@ -1,7 +1,7 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { attractions, checkIns, getAvatarSrc, type AttractionDetail as AttractionDetailType } from "../api";
+import { attractions, checkIns, getAvatarSrc, type AttractionDetail as AttractionDetailType, type RecentCheckIn } from "../api";
 import { AddToList } from "../components/AddToList";
 import { SaveToWantToSee } from "../components/SaveToWantToSee";
 import { EditCheckIn } from "../components/EditCheckIn";
@@ -17,6 +17,20 @@ export function AttractionDetail() {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [visitDate, setVisitDate] = useState(new Date().toISOString().slice(0, 10));
+  const [likeLoadingId, setLikeLoadingId] = useState<string | null>(null);
+
+  const updateCheckInLike = (checkInId: string, liked: boolean, likeCount: number) => {
+    setAttraction((prev) => {
+      if (!prev) return prev;
+      const patch = (c: RecentCheckIn) =>
+        c.id === checkInId ? { ...c, likedByMe: liked, likeCount } : c;
+      return {
+        ...prev,
+        recentCheckIns: prev.recentCheckIns?.map(patch) ?? [],
+        popularCheckIns: prev.popularCheckIns?.map(patch) ?? [],
+      };
+    });
+  };
 
   useEffect(() => {
     if (!id) {
@@ -214,10 +228,32 @@ export function AttractionDetail() {
                           <span className="font-medium text-lbx-white">{c.user.username || "User"}</span>
                         </Link>
                       )}
-                      {c.likeCount != null && c.likeCount > 0 && (
-                        <span className="text-lbx-muted text-sm">
-                          ♥ {c.likeCount} {c.likeCount === 1 ? "like" : "likes"}
-                        </span>
+                      <span className="text-lbx-muted text-sm">
+                        ♥ {c.likeCount ?? 0} {(c.likeCount ?? 0) === 1 ? "like" : "likes"}
+                      </span>
+                      {user && c.user?.id !== user.id && (
+                        <button
+                          type="button"
+                          disabled={likeLoadingId === c.id}
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            if (!user || likeLoadingId) return;
+                            setLikeLoadingId(c.id);
+                            try {
+                              const res = c.likedByMe
+                                ? await checkIns.unlike(c.id)
+                                : await checkIns.like(c.id);
+                              updateCheckInLike(c.id, res.liked, res.likeCount);
+                            } finally {
+                              setLikeLoadingId(null);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 text-sm text-lbx-muted hover:text-lbx-green transition-colors disabled:opacity-50"
+                          aria-label={c.likedByMe ? "Unlike" : "Like"}
+                        >
+                          <span className={c.likedByMe ? "text-lbx-green" : ""}>{c.likedByMe ? "♥" : "♡"}</span>
+                          {c.likedByMe ? "Liked" : "Like"}
+                        </button>
                       )}
                     </div>
                     {user && c.user?.id === user.id ? (
@@ -292,10 +328,32 @@ export function AttractionDetail() {
                           <span className="font-medium text-lbx-white">{c.user.username || "User"}</span>
                         </Link>
                       )}
-                      {c.likeCount != null && c.likeCount > 0 && (
-                        <span className="text-lbx-muted text-sm">
-                          ♥ {c.likeCount} {c.likeCount === 1 ? "like" : "likes"}
-                        </span>
+                      <span className="text-lbx-muted text-sm">
+                        ♥ {c.likeCount ?? 0} {(c.likeCount ?? 0) === 1 ? "like" : "likes"}
+                      </span>
+                      {user && c.user?.id !== user.id && (
+                        <button
+                          type="button"
+                          disabled={likeLoadingId === c.id}
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            if (!user || likeLoadingId) return;
+                            setLikeLoadingId(c.id);
+                            try {
+                              const res = c.likedByMe
+                                ? await checkIns.unlike(c.id)
+                                : await checkIns.like(c.id);
+                              updateCheckInLike(c.id, res.liked, res.likeCount);
+                            } finally {
+                              setLikeLoadingId(null);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 text-sm text-lbx-muted hover:text-lbx-green transition-colors disabled:opacity-50"
+                          aria-label={c.likedByMe ? "Unlike" : "Like"}
+                        >
+                          <span className={c.likedByMe ? "text-lbx-green" : ""}>{c.likedByMe ? "♥" : "♡"}</span>
+                          {c.likedByMe ? "Liked" : "Like"}
+                        </button>
                       )}
                     </div>
                     {user && c.user?.id === user.id ? (

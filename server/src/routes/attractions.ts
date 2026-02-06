@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
-import { requireAuth } from "../lib/auth.js";
+import { requireAuth, getOptionalUserId } from "../lib/auth.js";
 import { resolveCityState } from "../lib/address.js";
 
 /** Haversine distance in miles between two lat/lng points */
@@ -432,9 +432,20 @@ export async function attractionsRoutes(app: FastifyInstance) {
       likeCountByCheckIn[g.targetId] = g._count.id;
     }
 
+    let likedByMeSet: Set<string> = new Set();
+    const userId = await getOptionalUserId(request as FastifyRequest);
+    if (userId && checkInIds.length > 0) {
+      const myLikes = await prisma.like.findMany({
+        where: { userId, targetType: "review", targetId: { in: checkInIds } },
+        select: { targetId: true },
+      });
+      likedByMeSet = new Set(myLikes.map((l) => l.targetId));
+    }
+
     const withLikeCount = attraction.checkIns.map((c) => ({
       ...c,
       likeCount: likeCountByCheckIn[c.id] ?? 0,
+      likedByMe: likedByMeSet.has(c.id),
     }));
     const recentCheckIns = withLikeCount.slice(0, 20);
     const popularCheckIns = [...withLikeCount]

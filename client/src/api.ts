@@ -187,6 +187,7 @@ export type RecentCheckIn = {
   user: { id: string; username: string; avatarUrl: string | null };
   attraction?: { id: string; name: string; city: string | null; state: string };
   likeCount?: number;
+  likedByMe?: boolean;
 };
 
 async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
