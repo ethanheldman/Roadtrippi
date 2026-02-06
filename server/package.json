@@ -18,6 +18,7 @@
     "import-scraped": "tsx scripts/import-scraped.ts",
     "import-muffler-man": "tsx scripts/import-muffler-man.ts",
     "import-maine": "tsx scripts/import-maine-attractions.ts",
+    "fix-maine-state": "tsx scripts/fix-maine-state.ts",
     "dedupe-eddie-world": "tsx scripts/dedupe-eddie-world.ts",
     "dedupe-paul-bunyan-bangor": "tsx scripts/dedupe-paul-bunyan-bangor.ts",
     "dedupe-fremont-troll": "tsx scripts/dedupe-fremont-troll.ts",

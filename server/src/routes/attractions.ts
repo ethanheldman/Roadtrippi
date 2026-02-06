@@ -24,10 +24,31 @@ function distanceMiles(
   return R * c;
 }
 
+/** Normalize state to 2-letter uppercase (e.g. "me" -> "ME", "Maine" -> "ME"). */
+function normalizeStateCode(state: string | undefined): string | undefined {
+  if (!state || !state.trim()) return undefined;
+  const s = state.trim();
+  if (s.length === 2) return s.toUpperCase();
+  const nameToCode: Record<string, string> = {
+    maine: "ME", alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA",
+    colorado: "CO", connecticut: "CT", delaware: "DE", florida: "FL", georgia: "GA",
+    hawaii: "HI", idaho: "ID", illinois: "IL", indiana: "IN", iowa: "IA", kansas: "KS",
+    kentucky: "KY", louisiana: "LA", maryland: "MD", massachusetts: "MA", michigan: "MI",
+    minnesota: "MN", mississippi: "MS", missouri: "MO", montana: "MT", nebraska: "NE",
+    nevada: "NV", "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
+    "north carolina": "NC", "north dakota": "ND", ohio: "OH", oklahoma: "OK", oregon: "OR",
+    pennsylvania: "PA", "rhode island": "RI", "south carolina": "SC", "south dakota": "SD",
+    tennessee: "TN", texas: "TX", utah: "UT", vermont: "VT", virginia: "VA", washington: "WA",
+    "west virginia": "WV", wisconsin: "WI", wyoming: "WY",
+  };
+  const code = nameToCode[s.toLowerCase()];
+  return code ?? (s.length >= 2 ? s.slice(0, 2).toUpperCase() : undefined);
+}
+
 const querySchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(24),
-  state: z.string().length(2).optional(),
+  state: z.string().max(50).optional(),
   city: z.string().max(100).optional(),
   search: z.string().optional(),
   category: z.string().max(100).optional(),
@@ -95,10 +116,17 @@ export async function attractionsRoutes(app: FastifyInstance) {
     if (!q.success) {
       return reply.status(400).send({ error: q.error.flatten() });
     }
-    const { page, limit, state, city, search, category, sortBy, sortOrder, lat, lng } = q.data;
+    const { page, limit, state: stateParam, city, search, category, sortBy, sortOrder, lat, lng } = q.data;
+    const state = normalizeStateCode(stateParam);
     const skip = (page - 1) * limit;
     const where: WhereAttraction = {};
-    if (state) where.state = state;
+    if (state) {
+      if (state === "ME") {
+        (where as { state?: string | { in: string[] } }).state = { in: ["ME", "Maine"] };
+      } else {
+        where.state = state;
+      }
+    }
     if (city?.trim()) where.city = { contains: city.trim(), mode: "insensitive" };
     if (search?.trim()) where.name = { contains: search.trim(), mode: "insensitive" };
     if (category?.trim()) where.attractionCategories = { some: { category: { slug: category.trim() } } };
