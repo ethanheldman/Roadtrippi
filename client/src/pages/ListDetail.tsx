@@ -123,7 +123,9 @@ export function ListDetail() {
       items.sort((a, b) => {
         const ra = a.attraction.avgRating ?? 0;
         const rb = b.attraction.avgRating ?? 0;
-        return mult * (ra - rb);
+        const diff = mult * (ra - rb);
+        if (diff !== 0) return diff;
+        return (b.attraction.ratingCount ?? 0) - (a.attraction.ratingCount ?? 0);
       });
       return items;
     }

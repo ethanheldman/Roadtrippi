@@ -683,6 +683,21 @@ async function main() {
 
     const results: Awaited<ReturnType<typeof parseStoryPage>>[] = [];
     let stateSavedCount = 0;
+    const slug = "roadside-oddities";
+    const ensureDbConnection = async () => {
+      if (!statePrisma || !stateCat) return;
+      try {
+        await statePrisma.$queryRaw`SELECT 1`;
+      } catch (e: unknown) {
+        const code = (e as { code?: string })?.code;
+        if (code === "P1017" || (e as Error)?.message?.includes("closed the connection")) {
+          await statePrisma.$disconnect().catch(() => {});
+          const { PrismaClient } = await import("@prisma/client");
+          statePrisma = new PrismaClient();
+          stateCat = await statePrisma.category.findFirst({ where: { slug } }) ?? stateCat;
+        }
+      }
+    };
     for (let i = 0; i < taskList.length; i++) {
       const task = taskList[i];
       const label = task.type === "story" ? `Story ${task.id}` : `Tip ${task.id}`;
@@ -691,30 +706,46 @@ async function main() {
       if (row) {
         results.push(row);
         if (importDb && statePrisma && stateCat) {
-          let att = await statePrisma.attraction.findFirst({ where: { sourceUrl: row.sourceUrl } });
-          if (!att) {
-            att = await statePrisma.attraction.create({
-              data: { name: row.name, city: row.city, state: row.state, description: row.description, address: row.address, sourceUrl: row.sourceUrl, imageUrl: row.imageUrl },
-            });
-          } else {
-            await statePrisma.attraction.update({
-              where: { id: att.id },
-              data: {
-                name: row.name,
-                city: row.city,
-                state: row.state,
-                description: row.description,
-                address: row.address,
-                ...(row.imageUrl != null && { imageUrl: row.imageUrl }),
-              },
-            });
+          for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+              await ensureDbConnection();
+              let att = await statePrisma!.attraction.findFirst({ where: { sourceUrl: row.sourceUrl } });
+              if (!att) {
+                att = await statePrisma!.attraction.create({
+                  data: { name: row.name, city: row.city, state: row.state, description: row.description, address: row.address, sourceUrl: row.sourceUrl, imageUrl: row.imageUrl },
+                });
+              } else {
+                await statePrisma!.attraction.update({
+                  where: { id: att.id },
+                  data: {
+                    name: row.name,
+                    city: row.city,
+                    state: row.state,
+                    description: row.description,
+                    address: row.address,
+                    ...(row.imageUrl != null && { imageUrl: row.imageUrl }),
+                  },
+                });
+              }
+              await statePrisma!.attractionCategory.upsert({
+                where: { attractionId_categoryId: { attractionId: att.id, categoryId: stateCat!.id } },
+                create: { attractionId: att.id, categoryId: stateCat!.id },
+                update: {},
+              });
+              stateSavedCount++;
+              break;
+            } catch (e: unknown) {
+              const code = (e as { code?: string })?.code;
+              if ((code === "P1017" || (e as Error)?.message?.includes("closed the connection")) && attempt < 2) {
+                await statePrisma!.$disconnect().catch(() => {});
+                const { PrismaClient } = await import("@prisma/client");
+                statePrisma = new PrismaClient();
+                stateCat = await statePrisma.category.findFirst({ where: { slug } }) ?? stateCat;
+              } else {
+                throw e;
+              }
+            }
           }
-          await statePrisma.attractionCategory.upsert({
-            where: { attractionId_categoryId: { attractionId: att.id, categoryId: stateCat.id } },
-            create: { attractionId: att.id, categoryId: stateCat.id },
-            update: {},
-          });
-          stateSavedCount++;
         }
         console.log(row.name.slice(0, 40) + (row.name.length > 40 ? "…" : "") + (importDb ? " ✓" : ""));
       } else {

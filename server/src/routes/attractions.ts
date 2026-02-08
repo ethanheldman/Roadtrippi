@@ -123,6 +123,8 @@ export async function attractionsRoutes(app: FastifyInstance) {
     if (state) {
       if (state === "ME") {
         (where as { state?: string | { in: string[] } }).state = { in: ["ME", "Maine"] };
+      } else if (state === "CA") {
+        (where as { state?: string | { in: string[] } }).state = { in: ["CA", "California"] };
       } else {
         where.state = state;
       }
@@ -232,8 +234,17 @@ export async function attractionsRoutes(app: FastifyInstance) {
       }
 
       const sortedIds = [...allIds].sort((a, b) => {
-        const diff = avgByAttraction[b]! - avgByAttraction[a]!;
-        return sortOrder === "desc" ? diff : -diff;
+        const avgA = avgByAttraction[a]!;
+        const avgB = avgByAttraction[b]!;
+        const diff = sortOrder === "desc" ? avgB - avgA : avgA - avgB;
+        if (diff !== 0) return diff;
+        // Same avg rating: desc = more ratings first, asc = fewer ratings first
+        const countA = countByAttraction[a] ?? 0;
+        const countB = countByAttraction[b] ?? 0;
+        const countDiff = sortOrder === "desc" ? countB - countA : countA - countB;
+        if (countDiff !== 0) return countDiff;
+        // Stable sort by id
+        return a.localeCompare(b);
       });
       const pageIds = sortedIds.slice(skip, skip + limit);
 
