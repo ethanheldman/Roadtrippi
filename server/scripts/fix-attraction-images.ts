@@ -27,12 +27,13 @@ async function main() {
     });
     if (updated.count > 0) console.log(`Set image for ${name}, ${state} (${updated.count} record(s)).`);
   }
-  // Also fix any attraction still using local /uploads/ for Fremont Troll (so production works)
-  const fremontLocal = await prisma.attraction.updateMany({
-    where: { name: "Fremont Troll", state: "WA", imageUrl: "/uploads/attractions/fremont-troll.jpg" },
-    data: { imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Fremont_randoms_-_Flickr_-_eliduke.jpg/800px-Fremont_randoms_-_Flickr_-_eliduke.jpg" },
+  // Ensure Fremont Troll (WA) uses the chosen public image (any current image → update to this one)
+  const fremontTrollUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Fremont_randoms_-_Flickr_-_eliduke.jpg/800px-Fremont_randoms_-_Flickr_-_eliduke.jpg";
+  const fremontUpdated = await prisma.attraction.updateMany({
+    where: { name: "Fremont Troll", state: "WA" },
+    data: { imageUrl: fremontTrollUrl },
   });
-  if (fremontLocal.count > 0) console.log("Updated Fremont Troll from local path to public URL.");
+  if (fremontUpdated.count > 0) console.log(`Updated Fremont Troll image (${fremontUpdated.count} record(s)).`);
   await prisma.$disconnect();
   console.log("Done.");
 }

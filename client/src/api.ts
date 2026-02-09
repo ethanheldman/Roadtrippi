@@ -97,8 +97,10 @@ export type MapAttraction = {
 };
 
 export const attractions = {
-  mapMarkers: () =>
-    api<{ items: MapAttraction[] }>("/api/attractions/map"),
+  mapMarkers: (state?: string) => {
+    const q = state ? `?state=${encodeURIComponent(state)}` : "";
+    return api<{ items: MapAttraction[] }>(`/api/attractions/map${q}`);
+  },
   list: (params?: {
     page?: number;
     limit?: number;

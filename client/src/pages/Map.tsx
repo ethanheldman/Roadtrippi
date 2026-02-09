@@ -7,6 +7,14 @@ import { useAuth } from "../context/AuthContext";
 import { SaveToWantToSee } from "../components/SaveToWantToSee";
 import "leaflet/dist/leaflet.css";
 
+const STATES = [
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+];
+
 const MARKER_ICON_URL = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png";
 const MARKER_ICON_2X_URL = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png";
 const MARKER_SHADOW_URL = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png";
@@ -61,9 +69,10 @@ function FlyToLocation({ userCoords }: { userCoords: { lat: number; lng: number 
 
 export function Map() {
   const { user } = useAuth();
+  const [state, setState] = useState<string>("");
   const [items, setItems] = useState<MapAttraction[]>([]);
   const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -71,14 +80,19 @@ export function Map() {
   const [showOnlyVisited, setShowOnlyVisited] = useState(false);
 
   useEffect(() => {
+    if (!state) {
+      setItems([]);
+      setError(null);
+      return;
+    }
     setLoading(true);
     setError(null);
     attractions
-      .mapMarkers()
+      .mapMarkers(state)
       .then((res) => setItems(res.items))
       .catch(() => setError("Failed to load map data."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [state]);
 
   useEffect(() => {
     if (!user) {
@@ -103,32 +117,9 @@ export function Map() {
     return showOnlyVisited ? items.filter((a) => visitedIds.has(a.id)) : items;
   }, [items, visitedIds, showOnlyVisited]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[480px] text-lbx-muted">
-        Loading map…
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="rounded-lg border border-lbx-border bg-lbx-card p-6 text-center text-lbx-muted">
-        {error}
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className="rounded-lg border border-lbx-border bg-lbx-card p-8 text-center">
-        <p className="text-lbx-muted mb-2">No attractions with coordinates yet.</p>
-        <p className="text-sm text-lbx-muted">
-          Run the geocode script from the server: <code className="bg-lbx-dark px-1 rounded">npm run geocode-attractions</code>
-        </p>
-      </div>
-    );
-  }
+  const showMap = state && !loading && !error;
+  const showEmptyState = state && !loading && !error && items.length === 0;
+  const showChooseState = !state;
 
   const handleLocate = () => {
     setLocationError(null);
@@ -158,6 +149,20 @@ export function Map() {
           Roadside Attractions Map
         </h1>
         <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-medium text-lbx-muted/90 uppercase tracking-widest">State</span>
+            <select
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              className="pl-2 pr-8 py-2 rounded-md border border-lbx-border bg-lbx-card text-lbx-white focus:border-lbx-green focus:outline-none focus:ring-1 focus:ring-lbx-green text-sm min-w-[88px] appearance-none cursor-pointer"
+              aria-label="Choose state for map"
+            >
+              <option value="">Choose state</option>
+              {STATES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
           <button
             type="button"
             onClick={handleLocate}
@@ -179,7 +184,7 @@ export function Map() {
               {locationError}
             </p>
           )}
-          {user && (
+          {state && user && (
             <button
               type="button"
               onClick={(e) => {
@@ -207,7 +212,7 @@ export function Map() {
               Visited
             </button>
           )}
-          {!showOnlyVisited && (
+          {state && !showOnlyVisited && (
             <p className="text-lbx-muted text-sm">
               {items.length} attraction{items.length !== 1 ? "s" : ""} on the map
             </p>
@@ -215,6 +220,28 @@ export function Map() {
         </div>
       </div>
       <div className="rounded-xl overflow-hidden border border-lbx-border bg-lbx-card h-[calc(100vh-12rem)] min-h-[420px]">
+        {showChooseState && (
+          <div className="h-full flex items-center justify-center text-lbx-muted bg-lbx-dark/40">
+            <p>Choose a state above to view roadside attractions on the map.</p>
+          </div>
+        )}
+        {state && loading && (
+          <div className="h-full flex items-center justify-center text-lbx-muted">
+            Loading map…
+          </div>
+        )}
+        {state && error && (
+          <div className="h-full flex items-center justify-center p-6 text-lbx-muted text-center">
+            {error}
+          </div>
+        )}
+        {showEmptyState && (
+          <div className="h-full flex items-center justify-center text-lbx-muted text-center p-6">
+            <p>No attractions with coordinates in this state yet.</p>
+            <p className="text-sm mt-1">Geocoding may not have been run for this state.</p>
+          </div>
+        )}
+        {showMap && items.length > 0 && (
         <MapContainer
           center={[39.5, -98.35]}
           zoom={4}
@@ -225,7 +252,7 @@ export function Map() {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <FitBounds items={filteredItems} enabled={showOnlyVisited} />
+          <FitBounds items={filteredItems} enabled={filteredItems.length > 0} />
           <FlyToLocation userCoords={userCoords} />
           {filteredItems.map((a) => (
             <Marker
@@ -264,6 +291,7 @@ export function Map() {
             </Marker>
           ))}
         </MapContainer>
+        )}
       </div>
     </div>
   );

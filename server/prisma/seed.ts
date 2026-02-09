@@ -138,7 +138,7 @@ const ROADSIDE_AMERICA = {
   },
   "Fremont Troll": {
     sourceUrl: "https://www.roadsideamerica.com/location/wa",
-    imageUrl: "/uploads/attractions/fremont-troll.jpg",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Fremont_randoms_-_Flickr_-_eliduke.jpg/800px-Fremont_randoms_-_Flickr_-_eliduke.jpg",
   },
   "World's Largest Pistachio": {
     sourceUrl: "https://www.roadsideamerica.com/story/19946",

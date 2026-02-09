@@ -20,6 +20,7 @@
     "import-maine": "tsx scripts/import-maine-attractions.ts",
     "import-south-dakota": "tsx scripts/import-south-dakota-attractions.ts",
     "import-california": "tsx scripts/import-california-attractions.ts",
+    "import-texas": "tsx scripts/import-texas-attractions.ts",
     "fix-maine-state": "tsx scripts/fix-maine-state.ts",
     "ensure-attraction-media": "tsx scripts/ensure-attraction-media.ts",
     "dedupe-eddie-world": "tsx scripts/dedupe-eddie-world.ts",

@@ -462,8 +462,8 @@ async function main() {
 
     let prisma: Awaited<ReturnType<typeof import("@prisma/client").PrismaClient>> | null = null;
     let mufflerManCat: { id: string } | null = null;
-    if (importDb) {
-      const { PrismaClient } = await import("@prisma/client");
+  if (importDb) {
+    const { PrismaClient } = await import("@prisma/client");
       prisma = new PrismaClient();
       const slug = "muffler-man";
       mufflerManCat = await prisma.category.findFirst({ where: { slug } });
@@ -584,7 +584,7 @@ async function main() {
           create: { attractionId: att.id, categoryId: cat.id },
           update: {},
         });
-        await prisma.$disconnect();
+    await prisma.$disconnect();
         console.log("Saved to database (no duplicate).");
       }
     }

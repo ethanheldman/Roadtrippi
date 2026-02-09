@@ -67,13 +67,23 @@ type WhereAttraction = {
 };
 
 export async function attractionsRoutes(app: FastifyInstance) {
-  /** All attractions with coordinates for the map (id, name, city, state, lat, lng, imageUrl, sourceUrl) */
-  app.get("/map", async (_request, reply) => {
+  /** Map markers: ?state=XX required — returns only attractions with coordinates in that state */
+  app.get("/map", async (request: FastifyRequest, reply: FastifyReply) => {
+    const stateParam = (request.query as { state?: string })?.state;
+    const state = normalizeStateCode(stateParam);
+    if (!state) {
+      return reply.send({ items: [] });
+    }
+    const where: WhereAttraction & { latitude: { not: null }; longitude: { not: null } } = {
+      latitude: { not: null },
+      longitude: { not: null },
+    };
+    if (state === "ME") (where as { state?: string | { in: string[] } }).state = { in: ["ME", "Maine"] };
+    else if (state === "CA") (where as { state?: string | { in: string[] } }).state = { in: ["CA", "California"] };
+    else if (state === "TX") (where as { state?: string | { in: string[] } }).state = { in: ["TX", "Texas"] };
+    else where.state = state;
     const attractions = await prisma.attraction.findMany({
-      where: {
-        latitude: { not: null },
-        longitude: { not: null },
-      },
+      where,
       select: {
         id: true,
         name: true,
@@ -87,12 +97,12 @@ export async function attractionsRoutes(app: FastifyInstance) {
       },
     });
     const items = attractions.map((a) => {
-      const { city, state } = resolveCityState(a.city, a.state, a.address);
+      const { city, state: s } = resolveCityState(a.city, a.state, a.address);
       return {
         id: a.id,
         name: a.name,
         city,
-        state,
+        state: s,
         latitude: a.latitude!,
         longitude: a.longitude!,
         imageUrl: a.imageUrl ?? undefined,
@@ -125,6 +135,8 @@ export async function attractionsRoutes(app: FastifyInstance) {
         (where as { state?: string | { in: string[] } }).state = { in: ["ME", "Maine"] };
       } else if (state === "CA") {
         (where as { state?: string | { in: string[] } }).state = { in: ["CA", "California"] };
+      } else if (state === "TX") {
+        (where as { state?: string | { in: string[] } }).state = { in: ["TX", "Texas"] };
       } else {
         where.state = state;
       }
