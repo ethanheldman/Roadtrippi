@@ -41,17 +41,17 @@ export function AttractionCard({ a }: AttractionCardProps) {
                 <span className="text-7xl sm:text-8xl md:text-9xl leading-none select-none" aria-hidden>🗿</span>
               </div>
             )}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 flex items-center justify-between">
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-3 py-2.5 flex items-center justify-between">
               {showRating && (
-                <span className="text-xs text-lbx-green font-medium">
+                <span className="text-base font-semibold text-amber-400 drop-shadow-sm">
                   ★ {a.avgRating}
                   {a.ratingCount != null && a.ratingCount > 0 && (
-                    <span className="text-lbx-muted font-normal"> ({a.ratingCount})</span>
+                    <span className="text-white/90 font-normal text-sm"> ({a.ratingCount})</span>
                   )}
                 </span>
               )}
               {a.visitCount != null && a.visitCount > 0 && !showRating && (
-                <span className="text-xs text-lbx-muted">★ {a.visitCount} check-ins</span>
+                <span className="text-sm text-white/90">{a.visitCount} check-in{a.visitCount !== 1 ? "s" : ""}</span>
               )}
             </div>
           </div>

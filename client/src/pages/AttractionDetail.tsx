@@ -6,6 +6,7 @@ import { AddToList } from "../components/AddToList";
 import { SaveToWantToSee } from "../components/SaveToWantToSee";
 import { EditCheckIn } from "../components/EditCheckIn";
 import { StarRating } from "../components/StarRating";
+import { StarDisplay } from "../components/StarDisplay";
 
 export function AttractionDetail() {
   const { id } = useParams<{ id: string }>();
@@ -132,33 +133,79 @@ export function AttractionDetail() {
           {attraction.address && (
             <p className="text-sm text-lbx-muted mt-1">{attraction.address}</p>
           )}
+
+          {/* Check in & visit — at top of card */}
           {user && (
-            <div className="flex flex-wrap items-center gap-2 mt-3">
+            <section className="mt-6 py-5 px-5 rounded-lg bg-lbx-dark/60 border border-lbx-border">
+              <h2 className="font-display font-semibold text-lg text-lbx-white mb-4">Check in</h2>
+              <div className="space-y-4 max-w-md">
+                <div>
+                  <label className="block text-sm font-medium text-lbx-muted mb-1">Rating</label>
+                  <StarRating value={rating} onChange={setRating} aria-label="Choose rating" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-lbx-muted mb-1">Visit date</label>
+                  <input
+                    type="date"
+                    value={visitDate}
+                    onChange={(e) => setVisitDate(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-lbx-dark border border-lbx-border rounded-md text-lbx-white focus:border-lbx-green focus:ring-1 focus:ring-lbx-green focus:outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-lbx-muted mb-1">Review (optional)</label>
+                  <textarea
+                    value={review}
+                    onChange={(e) => setReview(e.target.value)}
+                    rows={3}
+                    className="w-full px-4 py-2.5 bg-lbx-dark border border-lbx-border rounded-md text-lbx-white placeholder-lbx-muted focus:border-lbx-green focus:ring-1 focus:ring-lbx-green focus:outline-none text-sm resize-none"
+                    placeholder="What did you think?"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCheckIn}
+                  disabled={checkingIn || rating < 1}
+                  className="w-full px-4 py-2.5 bg-lbx-green text-lbx-dark font-medium rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity text-sm"
+                >
+                  {checkingIn ? "Saving..." : "Check in"}
+                </button>
+              </div>
+            </section>
+          )}
+
+          {user && (
+            <div className="flex flex-wrap items-center gap-2 mt-4">
               <SaveToWantToSee attractionId={attraction.id} />
               <AddToList attractionId={attraction.id} variant="dropdown" />
             </div>
           )}
 
-          {/* Stats: rating & check-ins */}
-          <section className="mt-6 py-4 px-4 rounded-lg bg-lbx-dark/50 border border-lbx-border">
-            <h2 className="sr-only">At a glance</h2>
-            <div className="flex flex-wrap items-center gap-6">
+          {/* Rating & visit count — prominent, easy to see */}
+          <section className="mt-6 py-5 px-5 rounded-lg bg-lbx-dark/50 border border-lbx-border">
+            <h2 className="sr-only">Rating and visits</h2>
+            <div className="flex flex-wrap items-center gap-8">
               {attraction.avgRating != null && attraction.avgRating > 0 ? (
-                <div>
-                  <p className="text-2xl font-display font-bold text-lbx-green">★ {attraction.avgRating}</p>
-                  <p className="text-xs text-lbx-muted">
-                    {ratingCount} {ratingCount === 1 ? "rating" : "ratings"}
-                  </p>
+                <div className="flex items-center gap-3">
+                  <StarDisplay value={attraction.avgRating} className="text-2xl sm:text-3xl text-amber-400" />
+                  <div>
+                    <p className="text-xl sm:text-2xl font-display font-bold text-lbx-white tabular-nums">
+                      {attraction.avgRating}/5
+                    </p>
+                    <p className="text-sm text-lbx-muted">
+                      {ratingCount} {ratingCount === 1 ? "rating" : "ratings"}
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div>
                   <p className="text-2xl font-display font-bold text-lbx-muted">—</p>
-                  <p className="text-xs text-lbx-muted">No ratings yet</p>
+                  <p className="text-sm text-lbx-muted">No ratings yet</p>
                 </div>
               )}
               <div>
-                <p className="text-2xl font-display font-bold text-lbx-white">{visitCount}</p>
-                <p className="text-xs text-lbx-muted">
+                <p className="text-2xl sm:text-3xl font-display font-bold text-lbx-white tabular-nums">{visitCount}</p>
+                <p className="text-sm text-lbx-muted">
                   {visitCount === 1 ? "check-in" : "check-ins"}
                 </p>
               </div>
@@ -191,6 +238,96 @@ export function AttractionDetail() {
             <AddToList attractionId={attraction.id} variant="section" />
           )}
 
+          {/* Timeline: visit history */}
+          <section className="mt-8 pt-8 border-t border-lbx-border">
+            <h2 className="font-display font-semibold text-lg text-lbx-white mb-4">
+              Visit history
+            </h2>
+            {hasRecent ? (
+              <div className="relative">
+                {/* Vertical line */}
+                <div className="absolute left-4 top-2 bottom-2 w-px bg-lbx-border" aria-hidden />
+                <ul className="space-y-0">
+                  {recentList.map((c, idx) => (
+                    <li key={c.id} className="relative flex gap-4 pb-6 last:pb-0">
+                      <div className="relative z-10 flex-shrink-0 w-8 h-8 rounded-full bg-lbx-green/20 border-2 border-lbx-green flex items-center justify-center text-lbx-green text-xs font-bold">
+                        {recentList.length - idx}
+                      </div>
+                      <div className="flex-1 min-w-0 pt-0.5">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          {c.user && (
+                            <Link
+                              to={`/user/${c.user.id}`}
+                              className="font-medium text-lbx-white hover:text-lbx-green transition-colors"
+                            >
+                              {c.user.username || "User"}
+                            </Link>
+                          )}
+                          <span className="text-lbx-muted text-sm">
+                            {new Date(c.visitDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          </span>
+                          {c.rating != null && (
+                            <StarDisplay value={c.rating} className="text-amber-400 text-base" />
+                          )}
+                        </div>
+                        {user && c.user?.id !== user.id ? (
+                          <button
+                            type="button"
+                            disabled={likeLoadingId === c.id}
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              if (!user || likeLoadingId) return;
+                              setLikeLoadingId(c.id);
+                              try {
+                                const res = c.likedByMe
+                                  ? await checkIns.unlike(c.id)
+                                  : await checkIns.like(c.id);
+                                updateCheckInLike(c.id, res.liked, res.likeCount);
+                              } finally {
+                                setLikeLoadingId(null);
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 text-sm text-lbx-muted hover:text-lbx-green transition-colors disabled:opacity-50 mb-1"
+                            aria-label={c.likedByMe ? "Unlike" : "Like"}
+                          >
+                            <span className={c.likedByMe ? "text-lbx-green" : ""}>{c.likedByMe ? "♥" : "♡"}</span>
+                            <span>{c.likeCount ?? 0}</span>
+                          </button>
+                        ) : (
+                          <span className="text-lbx-muted text-sm">♥ {c.likeCount ?? 0}</span>
+                        )}
+                        {user && c.user?.id === user.id ? (
+                          <EditCheckIn
+                            checkInId={c.id}
+                            rating={c.rating ?? null}
+                            review={c.review ?? null}
+                            visitDate={c.visitDate}
+                            onSaved={async () => {
+                              if (id) {
+                                const updated = await attractions.get(id);
+                                setAttraction(updated);
+                              }
+                            }}
+                          />
+                        ) : (
+                          c.review ? (
+                            <p className="text-lbx-text text-sm whitespace-pre-wrap mt-1">{c.review}</p>
+                          ) : (
+                            <p className="text-lbx-muted text-sm italic mt-1">No written review</p>
+                          )
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-lbx-border bg-lbx-dark/30 py-6 px-6 text-center">
+                <p className="text-lbx-muted text-sm">No visits yet. Be the first to check in!</p>
+              </div>
+            )}
+          </section>
+
           {/* Popular reviews (most likes) */}
           <section className="mt-8 pt-8 border-t border-lbx-border">
             <h2 className="font-display font-semibold text-lg text-lbx-white mb-4">
@@ -204,107 +341,6 @@ export function AttractionDetail() {
             {hasPopular ? (
               <ul className="space-y-4">
                 {popularList.map((c) => (
-                  <li
-                    key={c.id}
-                    className="bg-lbx-dark/50 rounded-lg border border-lbx-border p-4"
-                  >
-                    <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      {c.user && (
-                        <Link
-                          to={`/user/${c.user.id}`}
-                          className="flex items-center gap-2 hover:text-lbx-green transition-colors"
-                        >
-                          {c.user.avatarUrl ? (
-                            <img
-                              src={getAvatarSrc(c.user.avatarUrl)}
-                              alt=""
-                              className="w-8 h-8 rounded-full object-cover bg-lbx-border"
-                            />
-                          ) : (
-                            <span className="w-8 h-8 rounded-full bg-lbx-border flex items-center justify-center text-lbx-muted text-sm font-medium">
-                              {(c.user.username || "?").slice(0, 1).toUpperCase()}
-                            </span>
-                          )}
-                          <span className="font-medium text-lbx-white">{c.user.username || "User"}</span>
-                        </Link>
-                      )}
-                      {user && c.user?.id !== user.id ? (
-                        <button
-                          type="button"
-                          disabled={likeLoadingId === c.id}
-                          onClick={async (e) => {
-                            e.preventDefault();
-                            if (!user || likeLoadingId) return;
-                            setLikeLoadingId(c.id);
-                            try {
-                              const res = c.likedByMe
-                                ? await checkIns.unlike(c.id)
-                                : await checkIns.like(c.id);
-                              updateCheckInLike(c.id, res.liked, res.likeCount);
-                            } finally {
-                              setLikeLoadingId(null);
-                            }
-                          }}
-                          className="inline-flex items-center gap-1 text-sm text-lbx-muted hover:text-lbx-green transition-colors disabled:opacity-50"
-                          aria-label={c.likedByMe ? "Unlike" : "Like"}
-                        >
-                          <span className={c.likedByMe ? "text-lbx-green" : ""}>{c.likedByMe ? "♥" : "♡"}</span>
-                          <span>{c.likeCount ?? 0}</span>
-                        </button>
-                      ) : (
-                        <span className="text-lbx-muted text-sm">
-                          ♥ {c.likeCount ?? 0}
-                        </span>
-                      )}
-                    </div>
-                    {user && c.user?.id === user.id ? (
-                      <EditCheckIn
-                        checkInId={c.id}
-                        rating={c.rating ?? null}
-                        review={c.review ?? null}
-                        visitDate={c.visitDate}
-                        onSaved={async () => {
-                          if (id) {
-                            const updated = await attractions.get(id);
-                            setAttraction(updated);
-                          }
-                        }}
-                      />
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-3 flex-wrap mb-1">
-                          {c.rating != null && (
-                            <span className="text-lbx-green text-sm font-medium">★ {c.rating}/5</span>
-                          )}
-                          <span className="text-lbx-muted text-sm">
-                            {new Date(c.visitDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                        {c.review ? (
-                          <p className="text-lbx-text text-sm whitespace-pre-wrap mt-1">{c.review}</p>
-                        ) : (
-                          <p className="text-lbx-muted text-sm italic mt-1">No written review</p>
-                        )}
-                      </>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="rounded-lg border border-lbx-border bg-lbx-dark/30 py-6 px-6 text-center">
-                <p className="text-lbx-muted text-sm">No reviews yet.</p>
-              </div>
-            )}
-          </section>
-
-          {/* Recent reviews (newest first) */}
-          <section className="mt-8 pt-8 border-t border-lbx-border">
-            <h2 className="font-display font-semibold text-lg text-lbx-white mb-4">
-              Recent reviews
-            </h2>
-            {hasRecent ? (
-              <ul className="space-y-4">
-                {recentList.map((c) => (
                   <li
                     key={c.id}
                     className="bg-lbx-dark/50 rounded-lg border border-lbx-border p-4"
@@ -421,44 +457,6 @@ export function AttractionDetail() {
             )}
           </div>
 
-          {user && (
-            <section className="mt-10 pt-8 border-t border-lbx-border">
-              <h2 className="font-display font-semibold text-lg text-lbx-white mb-4">Check in</h2>
-              <div className="space-y-4 max-w-md">
-                <div>
-                  <label className="block text-sm font-medium text-lbx-muted mb-1">Rating</label>
-                  <StarRating value={rating} onChange={setRating} aria-label="Choose rating" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-lbx-muted mb-1">Visit date</label>
-                  <input
-                    type="date"
-                    value={visitDate}
-                    onChange={(e) => setVisitDate(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-lbx-dark border border-lbx-border rounded-md text-lbx-white focus:border-lbx-green focus:ring-1 focus:ring-lbx-green focus:outline-none text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-lbx-muted mb-1">Review (optional)</label>
-                  <textarea
-                    value={review}
-                    onChange={(e) => setReview(e.target.value)}
-                    rows={3}
-                    className="w-full px-4 py-2.5 bg-lbx-dark border border-lbx-border rounded-md text-lbx-white placeholder-lbx-muted focus:border-lbx-green focus:ring-1 focus:ring-lbx-green focus:outline-none text-sm resize-none"
-                    placeholder="What did you think?"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCheckIn}
-                  disabled={checkingIn || rating < 1}
-                  className="w-full px-4 py-2.5 bg-lbx-green text-lbx-dark font-medium rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity text-sm"
-                >
-                  {checkingIn ? "Saving..." : "Check in"}
-                </button>
-              </div>
-            </section>
-          )}
         </div>
       </article>
     </div>

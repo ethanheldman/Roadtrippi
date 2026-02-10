@@ -42,14 +42,18 @@ export function Home() {
   const [reviewCommentSubmitting, setReviewCommentSubmitting] = useState(false);
   const [data, setData] = useState<Paginated<Attraction> | null>(null);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [searchParams, _setSearchParams] = useSearchParams();
-  const [state, setState] = useState<string>("");
-  const [city, setCity] = useState("");
-  const [category, setCategory] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [state, setState] = useState<string>(() => searchParams.get("state") ?? "");
+  const [city, setCity] = useState(() => searchParams.get("city") ?? "");
+  const [category, setCategory] = useState(() => searchParams.get("category") ?? "");
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
-  const [sortIndex, setSortIndex] = useState(0);
+  const [sortIndex, setSortIndex] = useState(() => {
+    const s = searchParams.get("sort");
+    const i = s != null ? parseInt(s, 10) : 0;
+    return Number.isNaN(i) || i < 0 || i >= SORT_OPTIONS.length ? 0 : i;
+  });
+  const [page, setPage] = useState(() => Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1));
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [heroOpacity, setHeroOpacity] = useState(1);
@@ -61,13 +65,32 @@ export function Home() {
     attractions.categories().then((r) => setCategories(r.items)).catch(() => setCategories([]));
   }, []);
 
+  // Sync filter state to URL (replace so back from detail restores explore)
   useEffect(() => {
-    const q = searchParams.get("search");
-    if (q !== null) setSearch(q);
-  }, [searchParams]);
+    const next = new URLSearchParams();
+    if (page > 1) next.set("page", String(page));
+    if (state) next.set("state", state);
+    if (city.trim()) next.set("city", city.trim());
+    if (category) next.set("category", category);
+    if (sortIndex > 0) next.set("sort", String(sortIndex));
+    if (search.trim()) next.set("search", search.trim());
+    const curr = new URLSearchParams(searchParams);
+    if (curr.toString() !== next.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [page, state, city, category, sortIndex, search]); // eslint-disable-line react-hooks/exhaustive-deps -- setSearchParams from useSearchParams
 
+  // When user navigates back/forward, read URL into state
   useEffect(() => {
-    if (searchParams.get("search")) window.scrollTo(0, 0);
+    const p = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+    const s = searchParams.get("sort");
+    const sortI = s != null ? parseInt(s, 10) : 0;
+    setPage(p);
+    setState(searchParams.get("state") ?? "");
+    setCity(searchParams.get("city") ?? "");
+    setCategory(searchParams.get("category") ?? "");
+    setSearch(searchParams.get("search") ?? "");
+    setSortIndex(Number.isNaN(sortI) || sortI < 0 || sortI >= SORT_OPTIONS.length ? 0 : sortI);
   }, [searchParams]);
 
   // Fade hero out as user scrolls
@@ -180,6 +203,24 @@ export function Home() {
 
       {/* Content that scrolls over the hero — solid bg so it covers the hero as you scroll up */}
       <div className="relative z-10 bg-lbx-dark -mt-px">
+        {/* Search bar at top */}
+        <div className="sticky top-[57px] z-10 bg-lbx-dark/95 backdrop-blur-sm border-b border-lbx-border/60 -mx-4 px-4 sm:-mx-6 sm:px-6 py-4">
+          <div className="max-w-2xl">
+            <label htmlFor="home-search" className="sr-only">Search attractions</label>
+            <input
+              id="home-search"
+              type="search"
+              placeholder="Search attractions..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="w-full px-4 py-3 bg-lbx-card border border-lbx-border rounded-lg text-lbx-white placeholder-lbx-muted focus:border-lbx-green focus:ring-2 focus:ring-lbx-green/30 focus:outline-none text-base transition-colors"
+              aria-label="Search attractions"
+            />
+          </div>
+        </div>
         <p className="text-lbx-muted text-center text-sm mb-2 pt-2">
           The social network for roadside attraction lovers.
         </p>
