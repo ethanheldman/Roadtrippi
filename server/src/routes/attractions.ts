@@ -81,6 +81,9 @@ export async function attractionsRoutes(app: FastifyInstance) {
     if (state === "ME") (where as { state?: string | { in: string[] } }).state = { in: ["ME", "Maine"] };
     else if (state === "CA") (where as { state?: string | { in: string[] } }).state = { in: ["CA", "California"] };
     else if (state === "TX") (where as { state?: string | { in: string[] } }).state = { in: ["TX", "Texas"] };
+    else if (state === "MO") (where as { state?: string | { in: string[] } }).state = { in: ["MO", "Missouri"] };
+    else if (state === "MD") (where as { state?: string | { in: string[] } }).state = { in: ["MD", "Maryland"] };
+    else if (state === "NY") (where as { state?: string | { in: string[] } }).state = { in: ["NY", "New York"] };
     else where.state = state;
     const attractions = await prisma.attraction.findMany({
       where,
@@ -137,6 +140,12 @@ export async function attractionsRoutes(app: FastifyInstance) {
         (where as { state?: string | { in: string[] } }).state = { in: ["CA", "California"] };
       } else if (state === "TX") {
         (where as { state?: string | { in: string[] } }).state = { in: ["TX", "Texas"] };
+      } else if (state === "MO") {
+        (where as { state?: string | { in: string[] } }).state = { in: ["MO", "Missouri"] };
+      } else if (state === "MD") {
+        (where as { state?: string | { in: string[] } }).state = { in: ["MD", "Maryland"] };
+      } else if (state === "NY") {
+        (where as { state?: string | { in: string[] } }).state = { in: ["NY", "New York"] };
       } else {
         where.state = state;
       }
