@@ -75,14 +75,14 @@ export async function attractionsRoutes(app: FastifyInstance) {
     if (!state) {
       return reply.send({ items: [] });
     }
-    const where: WhereAttraction & { latitude: { not: null }; longitude: { not: null }; imageUrl: { not: null } } = {
+    const where: WhereAttraction & { latitude: { not: null }; longitude: { not: null } } = {
       latitude: { not: null },
       longitude: { not: null },
-      imageUrl: { not: null },
     };
     if (state === "ME") (where as { state?: string | { in: string[] } }).state = { in: ["ME", "Maine"] };
     else if (state === "CA") (where as { state?: string | { in: string[] } }).state = { in: ["CA", "California"] };
     else if (state === "TX") (where as { state?: string | { in: string[] } }).state = { in: ["TX", "Texas"] };
+    else if (state === "MA") (where as { state?: string | { in: string[] } }).state = { in: ["MA", "Massachusetts"] };
     else if (state === "MO") (where as { state?: string | { in: string[] } }).state = { in: ["MO", "Missouri"] };
     else if (state === "MD") (where as { state?: string | { in: string[] } }).state = { in: ["MD", "Maryland"] };
     else if (state === "NY") (where as { state?: string | { in: string[] } }).state = { in: ["NY", "New York"] };
@@ -142,6 +142,8 @@ export async function attractionsRoutes(app: FastifyInstance) {
         (where as { state?: string | { in: string[] } }).state = { in: ["CA", "California"] };
       } else if (state === "TX") {
         (where as { state?: string | { in: string[] } }).state = { in: ["TX", "Texas"] };
+      } else if (state === "MA") {
+        (where as { state?: string | { in: string[] } }).state = { in: ["MA", "Massachusetts"] };
       } else if (state === "MO") {
         (where as { state?: string | { in: string[] } }).state = { in: ["MO", "Missouri"] };
       } else if (state === "MD") {
