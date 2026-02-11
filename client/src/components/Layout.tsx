@@ -20,8 +20,8 @@ export function Layout({ children }: { children: ReactNode }) {
             <span>Roadtrippi</span>
           </Link>
 
-          {/* Top search bar — only on Explore */}
-          {loc.pathname === "/" && (
+          {/* Top search bar — Explore, Map, People so it doesn't disappear when switching tabs */}
+          {(loc.pathname === "/" || loc.pathname === "/map" || loc.pathname === "/people") && (
             <div className="flex-1 max-w-md hidden sm:block">
               <label htmlFor="header-search" className="sr-only">Search attractions</label>
               <input
@@ -40,6 +40,12 @@ export function Layout({ children }: { children: ReactNode }) {
                     next.delete("page");
                   }
                   setSearchParams(next, { replace: false });
+                  // On Explore, scroll down to the in-page filters so the user sees the "other" search and results
+                  if (loc.pathname === "/") {
+                    requestAnimationFrame(() => {
+                      document.getElementById("all-attractions")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    });
+                  }
                 }}
                 className="w-full px-3 py-1.5 rounded-md bg-lbx-dark border border-lbx-border text-sm text-lbx-white placeholder-lbx-muted focus:outline-none focus:border-lbx-green focus:ring-1 focus:ring-lbx-green/40 transition-colors"
                 aria-label="Search attractions"
