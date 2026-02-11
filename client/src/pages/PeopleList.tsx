@@ -7,10 +7,6 @@ import { StarDisplay } from "../components/StarDisplay";
 const TABS = ["friends"] as const;
 type Tab = (typeof TABS)[number];
 
-const FETCHERS = {
-  friends: friends.list,
-} as const;
-
 const TITLES: Record<Tab, string> = {
   friends: "Activity",
 };
@@ -180,31 +176,23 @@ export function PeopleList() {
       navigate("/login");
       return;
     }
-    if (currentTab === "friends") {
-      setLoading(true);
-      setActivityLoading(true);
-      Promise.all([
-        friends.list().catch(() => ({ items: [] as UserSummary[] })),
-        users.inbox({ limit: 50 }).catch(() => ({ items: [] as InboxItem[] })),
-        friends.feed({ limit: 30 }).catch(() => ({ items: [] as FeedCheckIn[] })),
-      ])
-        .then(([friendsRes, inboxRes, feedRes]) => {
-          setItems(friendsRes.items);
-          setInboxItems(inboxRes.items);
-          setFeed(feedRes.items);
-        })
-        .finally(() => {
-          setLoading(false);
-          setActivityLoading(false);
-        });
-      return;
-    }
     setLoading(true);
-    FETCHERS[currentTab]()
-      .then((r) => setItems(r.items))
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
-  }, [token, navigate, currentTab]);
+    setActivityLoading(true);
+    Promise.all([
+      friends.list().catch(() => ({ items: [] as UserSummary[] })),
+      users.inbox({ limit: 50 }).catch(() => ({ items: [] as InboxItem[] })),
+      friends.feed({ limit: 30 }).catch(() => ({ items: [] as FeedCheckIn[] })),
+    ])
+      .then(([friendsRes, inboxRes, feedRes]) => {
+        setItems(friendsRes.items);
+        setInboxItems(inboxRes.items);
+        setFeed(feedRes.items);
+      })
+      .finally(() => {
+        setLoading(false);
+        setActivityLoading(false);
+      });
+  }, [token, navigate]);
 
   if (!token) return null;
 
@@ -214,9 +202,7 @@ export function PeopleList() {
         {TITLES[currentTab]}
       </h1>
 
-
-      {currentTab === "friends" ? (
-        loading || activityLoading ? (
+      {loading || activityLoading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="bg-lbx-card rounded-lg border border-lbx-border p-4 skeleton h-20" />
@@ -301,7 +287,6 @@ export function PeopleList() {
               </div>
             )}
           </div>
-        )
       )}
     </div>
   );
