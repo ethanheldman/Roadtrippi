@@ -6,7 +6,6 @@ type AttractionCardProps = {
 };
 
 export function AttractionCard({ a }: AttractionCardProps) {
-  const { user } = useAuth();
   const imageUrl = a.imageUrl;
   const showRating = a.avgRating != null && a.avgRating > 0;
   const to = `/attraction/${a.id}`;
