@@ -244,13 +244,22 @@ export function Profile() {
           <p className="text-xs text-lbx-muted mt-0.5">Check-ins</p>
         </a>
         <Link
-          to="/profile/friends"
+          to="/profile/following"
           className="bg-lbx-card rounded-lg border border-lbx-border px-4 py-3 min-w-[80px] hover:border-lbx-green/50 transition-colors"
         >
           <span className="text-xl font-display font-bold text-lbx-green tabular-nums">
-            {social ? social.friendsCount : "—"}
+            {social ? social.followingCount : "—"}
           </span>
-          <p className="text-xs text-lbx-muted mt-0.5">Friends</p>
+          <p className="text-xs text-lbx-muted mt-0.5">Following</p>
+        </Link>
+        <Link
+          to="/profile/followers"
+          className="bg-lbx-card rounded-lg border border-lbx-border px-4 py-3 min-w-[80px] hover:border-lbx-green/50 transition-colors"
+        >
+          <span className="text-xl font-display font-bold text-lbx-green tabular-nums">
+            {social ? social.followersCount : "—"}
+          </span>
+          <p className="text-xs text-lbx-muted mt-0.5">Followers</p>
         </Link>
       </div>
 

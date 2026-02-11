@@ -27,8 +27,6 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/:tab" element={<PeopleList />} />
-          <Route path="/profile/following" element={<Navigate to="/profile/friends" replace />} />
-          <Route path="/profile/followers" element={<Navigate to="/profile/friends" replace />} />
           <Route path="/user/:id" element={<UserProfile />} />
           <Route path="/user/:id/following" element={<UserTab />} />
           <Route path="/user/:id/followers" element={<UserTab />} />

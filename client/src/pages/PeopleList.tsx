@@ -4,11 +4,19 @@ import { useAuth } from "../context/AuthContext";
 import { friends, users, getAvatarSrc, type UserSummary, type InboxItem, type FeedCheckIn } from "../api";
 import { StarDisplay } from "../components/StarDisplay";
 
-const TABS = ["friends"] as const;
+const TABS = ["friends", "following", "followers"] as const;
 type Tab = (typeof TABS)[number];
+
+const FETCHERS = {
+  friends: friends.list,
+  following: friends.following,
+  followers: friends.followers,
+} as const;
 
 const TITLES: Record<Tab, string> = {
   friends: "Activity",
+  following: "Following",
+  followers: "Followers",
 };
 
 function formatTime(iso: string): string {
@@ -176,23 +184,31 @@ export function PeopleList() {
       navigate("/login");
       return;
     }
+    if (currentTab === "friends") {
+      setLoading(true);
+      setActivityLoading(true);
+      Promise.all([
+        friends.list().catch(() => ({ items: [] as UserSummary[] })),
+        users.inbox({ limit: 50 }).catch(() => ({ items: [] as InboxItem[] })),
+        friends.feed({ limit: 30 }).catch(() => ({ items: [] as FeedCheckIn[] })),
+      ])
+        .then(([friendsRes, inboxRes, feedRes]) => {
+          setItems(friendsRes.items);
+          setInboxItems(inboxRes.items);
+          setFeed(feedRes.items);
+        })
+        .finally(() => {
+          setLoading(false);
+          setActivityLoading(false);
+        });
+      return;
+    }
     setLoading(true);
-    setActivityLoading(true);
-    Promise.all([
-      friends.list().catch(() => ({ items: [] as UserSummary[] })),
-      users.inbox({ limit: 50 }).catch(() => ({ items: [] as InboxItem[] })),
-      friends.feed({ limit: 30 }).catch(() => ({ items: [] as FeedCheckIn[] })),
-    ])
-      .then(([friendsRes, inboxRes, feedRes]) => {
-        setItems(friendsRes.items);
-        setInboxItems(inboxRes.items);
-        setFeed(feedRes.items);
-      })
-      .finally(() => {
-        setLoading(false);
-        setActivityLoading(false);
-      });
-  }, [token, navigate]);
+    FETCHERS[currentTab]()
+      .then((r) => setItems(r.items))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, [token, navigate, currentTab]);
 
   if (!token) return null;
 
@@ -202,7 +218,8 @@ export function PeopleList() {
         {TITLES[currentTab]}
       </h1>
 
-      {loading || activityLoading ? (
+      {currentTab === "friends" ? (
+        loading || activityLoading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="bg-lbx-card rounded-lg border border-lbx-border p-4 skeleton h-20" />
@@ -287,6 +304,62 @@ export function PeopleList() {
               </div>
             )}
           </div>
+        )
+      ) : (
+        loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="bg-lbx-card rounded-lg border border-lbx-border p-4 skeleton h-20" />
+            ))}
+          </div>
+        ) : items.length > 0 ? (
+          <ul className="space-y-3">
+            {items.map((u) => (
+              <li key={u.id}>
+                <Link
+                  to={`/user/${u.id}`}
+                  className="flex items-center gap-4 bg-lbx-card rounded-lg border border-lbx-border p-4 hover:border-lbx-green/50 transition-colors"
+                >
+                  {u.avatarUrl ? (
+                    <img
+                      src={getAvatarSrc(u.avatarUrl)}
+                      alt=""
+                      className="w-12 h-12 rounded-full object-cover bg-lbx-border"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-lbx-border flex items-center justify-center text-lbx-muted font-display text-lg">
+                      {u.username.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <span className="font-medium text-lbx-white">{u.username}</span>
+                    {(u.bio || u.location) && (
+                      <p className="text-sm text-lbx-muted truncate max-w-md">
+                        {[u.bio, u.location].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="rounded-lg border border-lbx-border bg-lbx-card p-10 text-center">
+            <p className="text-lbx-text font-medium mb-1">
+              {currentTab === "following" ? "Not following anyone yet" : "No followers yet"}
+            </p>
+            <p className="text-lbx-muted text-sm">
+              {currentTab === "following"
+                ? "Follow people to see their check-ins and lists."
+                : "When people follow you, they'll show up here."}
+            </p>
+            {currentTab === "following" && (
+              <p className="text-lbx-muted text-sm mt-2">
+                <Link to="/people" className="text-lbx-green hover:underline">Find people to follow</Link>
+              </p>
+            )}
+          </div>
+        )
       )}
     </div>
   );
