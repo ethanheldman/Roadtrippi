@@ -762,7 +762,10 @@ async function main() {
     valid = results.filter((r): r is NonNullable<typeof r> => r != null);
   }
   mkdirSync(OUT_DIR, { recursive: true });
-  const outPath = join(OUT_DIR, mufflerMan ? "scraped-muffler-man.json" : "scraped.json");
+  const outPath = join(
+    OUT_DIR,
+    stateFilters.length === 1 ? `scraped-${stateFilters[0]}.json` : mufflerMan ? "scraped-muffler-man.json" : "scraped.json"
+  );
   writeFileSync(outPath, JSON.stringify(valid, null, 2), "utf-8");
   console.log(`\nWrote ${valid.length} attractions to ${outPath}`);
 }

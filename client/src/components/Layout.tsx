@@ -20,8 +20,8 @@ export function Layout({ children }: { children: ReactNode }) {
             <span>Roadtrippi</span>
           </Link>
 
-          {/* Top search bar — Explore, Map, People so it doesn't disappear when switching tabs */}
-          {(loc.pathname === "/" || loc.pathname === "/map" || loc.pathname === "/people") && (
+          {/* Top search bar — Explore, Map, People, Saved, Activity, Profile so it doesn't disappear when switching tabs */}
+          {(loc.pathname === "/" || loc.pathname === "/map" || loc.pathname === "/people" || loc.pathname.startsWith("/lists") || loc.pathname.startsWith("/profile")) && (
             <div className="flex-1 max-w-md hidden sm:block">
               <label htmlFor="header-search" className="sr-only">Search attractions</label>
               <input
