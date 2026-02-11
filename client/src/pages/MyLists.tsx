@@ -137,7 +137,7 @@ export function MyLists() {
       ) : (
         <div className="rounded-lg border border-lbx-border bg-lbx-card p-10 text-center">
           <p className="text-lbx-text font-medium mb-1">No saved places yet</p>
-          <p className="text-lbx-muted text-sm mb-4">Click &quot;Save&quot; on any attraction to add it to &quot;Want to see&quot;, or create a list below.</p>
+          <p className="text-lbx-muted text-sm mb-4">Click &quot;Want to see&quot; on any attraction to add it to your list, or create a list below.</p>
           <button
             type="button"
             onClick={handleCreateWantToSee}

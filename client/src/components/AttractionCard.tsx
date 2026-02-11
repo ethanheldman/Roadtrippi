@@ -1,6 +1,4 @@
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { SaveToWantToSee } from "./SaveToWantToSee";
 import type { Attraction } from "../api";
 
 type AttractionCardProps = {
@@ -22,14 +20,6 @@ export function AttractionCard({ a }: AttractionCardProps) {
       >
         <div className="h-full flex flex-col bg-lbx-card rounded-lg overflow-hidden border border-lbx-border hover:border-lbx-green/50 hover:shadow-card-hover transition-all duration-200 shadow-card">
           <div className="poster-aspect flex-shrink-0 w-full bg-lbx-border/80 relative overflow-hidden">
-            {user && (
-              <div
-                className="absolute top-2 right-2 z-10"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <SaveToWantToSee attractionId={a.id} compact className="!text-white/90 hover:!text-white drop-shadow" />
-              </div>
-            )}
             {imageUrl ? (
               <img
                 src={imageUrl}

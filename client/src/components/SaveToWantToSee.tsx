@@ -80,11 +80,11 @@ export function SaveToWantToSee({ attractionId, onSaved, className = "", compact
         }}
         disabled={saving}
         className={`inline-flex items-center gap-1.5 text-sm text-lbx-muted hover:text-lbx-green transition-colors disabled:opacity-50 ${className}`}
-        aria-label="Save to Want to see"
-        title="Save to Want to see"
+        aria-label="Add to Want to see list"
+        title="Add to your Want to see list"
       >
         <span aria-hidden>🔖</span>
-        <span>{saving ? "Saving…" : "Save"}</span>
+        <span>{saving ? "Saving…" : "Want to see"}</span>
       </button>
     );
   }
@@ -95,8 +95,10 @@ export function SaveToWantToSee({ attractionId, onSaved, className = "", compact
       onClick={handleSave}
       disabled={saving}
       className={`px-3 py-1.5 border border-lbx-border rounded text-sm text-lbx-muted hover:border-lbx-green hover:text-lbx-green transition-colors disabled:opacity-50 ${className}`}
+      aria-label="Add to Want to see list"
+      title="Add to your Want to see list"
     >
-      {saving ? "Saving…" : "Save"}
+      {saving ? "Saving…" : "Add to Want to see"}
     </button>
   );
 }

@@ -64,6 +64,7 @@ type WhereAttraction = {
   city?: string | { contains: string; mode?: "insensitive" };
   name?: { contains: string; mode?: "insensitive" };
   attractionCategories?: { some: { category: { slug: string } } };
+  imageUrl?: { not: null };
 };
 
 export async function attractionsRoutes(app: FastifyInstance) {
@@ -74,9 +75,10 @@ export async function attractionsRoutes(app: FastifyInstance) {
     if (!state) {
       return reply.send({ items: [] });
     }
-    const where: WhereAttraction & { latitude: { not: null }; longitude: { not: null } } = {
+    const where: WhereAttraction & { latitude: { not: null }; longitude: { not: null }; imageUrl: { not: null } } = {
       latitude: { not: null },
       longitude: { not: null },
+      imageUrl: { not: null },
     };
     if (state === "ME") (where as { state?: string | { in: string[] } }).state = { in: ["ME", "Maine"] };
     else if (state === "CA") (where as { state?: string | { in: string[] } }).state = { in: ["CA", "California"] };
@@ -163,7 +165,7 @@ export async function attractionsRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: "lat and lng required when sortBy is distance" });
       }
       const withCoords = await prisma.attraction.findMany({
-        where: { ...where, latitude: { not: null }, longitude: { not: null } },
+        where: { ...where, latitude: { not: null }, longitude: { not: null }, imageUrl: { not: null } },
         select: { id: true, latitude: true, longitude: true },
       });
       const withDistance = withCoords
