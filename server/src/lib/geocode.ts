@@ -69,7 +69,8 @@ export type AttractionGeocodeInput = {
 };
 
 /**
- * Geocode an attraction by trying address, then city/state, then name+city+state.
+ * Geocode an attraction using exact location when possible.
+ * Order: address first, then name+city+state (so each attraction gets distinct coords, not city center), then city+state last.
  * Uses 1.1s delay between Nominatim requests (respects usage policy).
  */
 export async function geocodeAttraction(
@@ -88,10 +89,11 @@ export async function geocodeAttraction(
       ? `${attraction.name.trim()}, ${city}, ${state}, USA`
       : null;
 
+  // Try name+city+state BEFORE generic city+state so we get exact coordinates per attraction, not the same city-center for all
   const queriesToTry = [
     primaryQuery,
-    fallbackQuery,
     nameQuery,
+    fallbackQuery,
     addressPartFallback,
   ].filter((q): q is string => !!q && q.length > 0);
   const uniqueQueries = [...new Set(queriesToTry)];

@@ -30,6 +30,8 @@
     "geocode:ca": "cd server && STATE=CA npx tsx scripts/geocode-attractions.ts",
     "geocode:sandiego": "cd server && STATE=CA CITY=\"San Diego\" npx tsx scripts/geocode-attractions.ts",
     "geocode": "cd server && npx tsx scripts/geocode-attractions.ts",
+    "regeocode-duplicates": "cd server && npx tsx scripts/regeocode-duplicate-coords.ts",
+    "regeocode-duplicates:ca": "cd server && STATE=CA npx tsx scripts/regeocode-duplicate-coords.ts",
     "tunnel": "npx localtunnel --port 5173"
   },
   "devDependencies": {
