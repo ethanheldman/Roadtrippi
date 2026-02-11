@@ -1,6 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import type { Marker as LeafletMarker } from "leaflet";
 import L from "leaflet";
 import { attractions, checkIns, type MapAttraction } from "../api";
 import { useAuth } from "../context/AuthContext";
@@ -67,9 +68,44 @@ function FlyToLocation({ userCoords }: { userCoords: { lat: number; lng: number 
   return null;
 }
 
+/** When focusAttractionId is in URL and in items, fly to it and open its popup. */
+function FlyToAttraction({
+  focusAttractionId,
+  items,
+  markerRefs,
+}: {
+  focusAttractionId: string | null;
+  items: MapAttraction[];
+  markerRefs: React.MutableRefObject<Record<string, LeafletMarker | null>>;
+}) {
+  const map = useMap();
+  const hasFocusedRef = useRef(false);
+  useEffect(() => {
+    if (!focusAttractionId || items.length === 0) return;
+    const item = items.find((a) => a.id === focusAttractionId);
+    if (!item) return;
+    map.flyTo([item.latitude, item.longitude], 14, { duration: 0.6 });
+    const t = setTimeout(() => {
+      const marker = markerRefs.current[focusAttractionId];
+      if (marker && typeof (marker as LeafletMarker & { openPopup?: () => void }).openPopup === "function") {
+        (marker as LeafletMarker).openPopup();
+      }
+      hasFocusedRef.current = true;
+    }, 500);
+    return () => clearTimeout(t);
+  }, [map, focusAttractionId, items, markerRefs]);
+  useEffect(() => {
+    hasFocusedRef.current = false;
+  }, [focusAttractionId]);
+  return null;
+}
+
 export function Map() {
   const { user } = useAuth();
-  const [state, setState] = useState<string>("");
+  const [searchParams] = useSearchParams();
+  const stateFromUrl = searchParams.get("state");
+  const focusAttractionId = searchParams.get("attraction");
+  const [state, setState] = useState<string>(() => stateFromUrl ?? "");
   const [items, setItems] = useState<MapAttraction[]>([]);
   const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -78,6 +114,11 @@ export function Map() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [showOnlyVisited, setShowOnlyVisited] = useState(false);
+  const markerRefs = useRef<Record<string, LeafletMarker | null>>({});
+
+  useEffect(() => {
+    if (stateFromUrl && STATES.includes(stateFromUrl)) setState(stateFromUrl);
+  }, [stateFromUrl]);
 
   useEffect(() => {
     if (!state) {
@@ -252,11 +293,22 @@ export function Map() {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <FitBounds items={filteredItems} enabled={filteredItems.length > 0} />
+          <FitBounds
+            items={filteredItems}
+            enabled={filteredItems.length > 0 && !focusAttractionId}
+          />
           <FlyToLocation userCoords={userCoords} />
+          <FlyToAttraction
+            focusAttractionId={focusAttractionId}
+            items={filteredItems}
+            markerRefs={markerRefs}
+          />
           {filteredItems.map((a) => (
             <Marker
               key={a.id}
+              ref={(r) => {
+                if (r) (markerRefs.current[a.id] = r as unknown as LeafletMarker);
+              }}
               position={[a.latitude, a.longitude]}
               icon={visitedIds.has(a.id) ? visitedIcon : icon}
             >

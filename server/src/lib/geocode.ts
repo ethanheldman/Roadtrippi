@@ -64,10 +64,12 @@ export type AttractionGeocodeInput = {
   address: string | null;
   city: string | null;
   state: string | null;
+  /** Optional attraction name; used as "name, city, state, USA" fallback for landmarks. */
+  name?: string | null;
 };
 
 /**
- * Geocode an attraction by trying address, then city/state fallbacks.
+ * Geocode an attraction by trying address, then city/state, then name+city+state.
  * Uses 1.1s delay between Nominatim requests (respects usage policy).
  */
 export async function geocodeAttraction(
@@ -81,10 +83,17 @@ export async function geocodeAttraction(
   const primaryQuery = addressPart ? `${addressPart}, USA` : null;
   const fallbackQuery = cityStateQuery(city, state);
   const addressPartFallback = cityStateFromAddressPart(addressPart);
+  const nameQuery =
+    attraction.name && city && state
+      ? `${attraction.name.trim()}, ${city}, ${state}, USA`
+      : null;
 
-  const queriesToTry = [primaryQuery, fallbackQuery, addressPartFallback].filter(
-    (q): q is string => !!q && q.length > 0
-  );
+  const queriesToTry = [
+    primaryQuery,
+    fallbackQuery,
+    nameQuery,
+    addressPartFallback,
+  ].filter((q): q is string => !!q && q.length > 0);
   const uniqueQueries = [...new Set(queriesToTry)];
 
   if (uniqueQueries.length === 0) return null;

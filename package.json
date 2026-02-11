@@ -27,6 +27,9 @@
     "db:seed": "cd server && npx prisma db seed",
     "db:seed:neon": "cd server && npx prisma db seed",
     "db:studio": "cd server && npx prisma studio",
+    "geocode:ca": "cd server && STATE=CA npx tsx scripts/geocode-attractions.ts",
+    "geocode:sandiego": "cd server && STATE=CA CITY=\"San Diego\" npx tsx scripts/geocode-attractions.ts",
+    "geocode": "cd server && npx tsx scripts/geocode-attractions.ts",
     "tunnel": "npx localtunnel --port 5173"
   },
   "devDependencies": {

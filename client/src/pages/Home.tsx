@@ -203,24 +203,6 @@ export function Home() {
 
       {/* Content that scrolls over the hero — solid bg so it covers the hero as you scroll up */}
       <div className="relative z-10 bg-lbx-dark -mt-px">
-        {/* Search bar at top */}
-        <div className="sticky top-[57px] z-10 bg-lbx-dark/95 backdrop-blur-sm border-b border-lbx-border/60 -mx-4 px-4 sm:-mx-6 sm:px-6 py-4">
-          <div className="max-w-2xl">
-            <label htmlFor="home-search" className="sr-only">Search attractions</label>
-            <input
-              id="home-search"
-              type="search"
-              placeholder="Search attractions..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="w-full px-4 py-3 bg-lbx-card border border-lbx-border rounded-lg text-lbx-white placeholder-lbx-muted focus:border-lbx-green focus:ring-2 focus:ring-lbx-green/30 focus:outline-none text-base transition-colors"
-              aria-label="Search attractions"
-            />
-          </div>
-        </div>
         <p className="text-lbx-muted text-center text-sm mb-2 pt-2">
           The social network for roadside attraction lovers.
         </p>

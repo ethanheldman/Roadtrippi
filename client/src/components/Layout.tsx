@@ -1,15 +1,17 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useAuth } from "../context/AuthContext";
 
 export function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const loc = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const search = searchParams.get("search") ?? "";
 
   return (
     <div className="min-h-screen flex flex-col bg-lbx-dark">
       <header className="bg-lbx-card/90 border-b border-lbx-border sticky top-0 z-20 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-4">
           <Link
             to="/"
             className="font-display font-bold text-xl text-lbx-white flex items-center gap-2 tracking-tight shrink-0"
@@ -17,6 +19,34 @@ export function Layout({ children }: { children: ReactNode }) {
             <img src="/roadtrippi-logo.png" alt="" className="h-10 w-auto" aria-hidden />
             <span>Roadtrippi</span>
           </Link>
+
+          {/* Top search bar — only on Explore */}
+          {loc.pathname === "/" && (
+            <div className="flex-1 max-w-md hidden sm:block">
+              <label htmlFor="header-search" className="sr-only">Search attractions</label>
+              <input
+                id="header-search"
+                type="search"
+                placeholder="Search attractions..."
+                value={search}
+                onChange={(e) => {
+                  const next = new URLSearchParams(searchParams);
+                  const value = e.target.value;
+                  if (value.trim()) {
+                    next.set("search", value);
+                    next.delete("page");
+                  } else {
+                    next.delete("search");
+                    next.delete("page");
+                  }
+                  setSearchParams(next, { replace: false });
+                }}
+                className="w-full px-3 py-1.5 rounded-md bg-lbx-dark border border-lbx-border text-sm text-lbx-white placeholder-lbx-muted focus:outline-none focus:border-lbx-green focus:ring-1 focus:ring-lbx-green/40 transition-colors"
+                aria-label="Search attractions"
+              />
+            </div>
+          )}
+
           <nav className="flex items-center gap-4 sm:gap-6 text-sm font-medium shrink-0">
             <Link
               to="/"

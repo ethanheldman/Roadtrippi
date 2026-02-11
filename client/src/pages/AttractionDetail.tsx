@@ -88,9 +88,16 @@ export function AttractionDetail() {
     );
   }
 
-  const mapUrl =
-    attraction.latitude && attraction.longitude
-      ? `https://www.google.com/maps?q=${attraction.latitude},${attraction.longitude}`
+  const stateCode =
+    attraction.state?.length === 2
+      ? attraction.state
+      : { California: "CA", Maine: "ME", Texas: "TX", "New York": "NY", Missouri: "MO", Maryland: "MD" }[
+          attraction.state ?? ""
+        ] ?? attraction.state?.slice(0, 2)?.toUpperCase() ?? "";
+  const hasMapCoords = !!(attraction.latitude && attraction.longitude);
+  const siteMapUrl =
+    hasMapCoords && stateCode
+      ? `/map?state=${encodeURIComponent(stateCode)}&attraction=${encodeURIComponent(attraction.id)}`
       : null;
 
   const recentList = attraction.recentCheckIns ?? [];
@@ -238,96 +245,6 @@ export function AttractionDetail() {
             <AddToList attractionId={attraction.id} variant="section" />
           )}
 
-          {/* Timeline: visit history */}
-          <section className="mt-8 pt-8 border-t border-lbx-border">
-            <h2 className="font-display font-semibold text-lg text-lbx-white mb-4">
-              Visit history
-            </h2>
-            {hasRecent ? (
-              <div className="relative">
-                {/* Vertical line */}
-                <div className="absolute left-4 top-2 bottom-2 w-px bg-lbx-border" aria-hidden />
-                <ul className="space-y-0">
-                  {recentList.map((c, idx) => (
-                    <li key={c.id} className="relative flex gap-4 pb-6 last:pb-0">
-                      <div className="relative z-10 flex-shrink-0 w-8 h-8 rounded-full bg-lbx-green/20 border-2 border-lbx-green flex items-center justify-center text-lbx-green text-xs font-bold">
-                        {recentList.length - idx}
-                      </div>
-                      <div className="flex-1 min-w-0 pt-0.5">
-                        <div className="flex flex-wrap items-center gap-2 mb-1">
-                          {c.user && (
-                            <Link
-                              to={`/user/${c.user.id}`}
-                              className="font-medium text-lbx-white hover:text-lbx-green transition-colors"
-                            >
-                              {c.user.username || "User"}
-                            </Link>
-                          )}
-                          <span className="text-lbx-muted text-sm">
-                            {new Date(c.visitDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                          </span>
-                          {c.rating != null && (
-                            <StarDisplay value={c.rating} className="text-amber-400 text-base" />
-                          )}
-                        </div>
-                        {user && c.user?.id !== user.id ? (
-                          <button
-                            type="button"
-                            disabled={likeLoadingId === c.id}
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              if (!user || likeLoadingId) return;
-                              setLikeLoadingId(c.id);
-                              try {
-                                const res = c.likedByMe
-                                  ? await checkIns.unlike(c.id)
-                                  : await checkIns.like(c.id);
-                                updateCheckInLike(c.id, res.liked, res.likeCount);
-                              } finally {
-                                setLikeLoadingId(null);
-                              }
-                            }}
-                            className="inline-flex items-center gap-1 text-sm text-lbx-muted hover:text-lbx-green transition-colors disabled:opacity-50 mb-1"
-                            aria-label={c.likedByMe ? "Unlike" : "Like"}
-                          >
-                            <span className={c.likedByMe ? "text-lbx-green" : ""}>{c.likedByMe ? "♥" : "♡"}</span>
-                            <span>{c.likeCount ?? 0}</span>
-                          </button>
-                        ) : (
-                          <span className="text-lbx-muted text-sm">♥ {c.likeCount ?? 0}</span>
-                        )}
-                        {user && c.user?.id === user.id ? (
-                          <EditCheckIn
-                            checkInId={c.id}
-                            rating={c.rating ?? null}
-                            review={c.review ?? null}
-                            visitDate={c.visitDate}
-                            onSaved={async () => {
-                              if (id) {
-                                const updated = await attractions.get(id);
-                                setAttraction(updated);
-                              }
-                            }}
-                          />
-                        ) : (
-                          c.review ? (
-                            <p className="text-lbx-text text-sm whitespace-pre-wrap mt-1">{c.review}</p>
-                          ) : (
-                            <p className="text-lbx-muted text-sm italic mt-1">No written review</p>
-                          )
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-lbx-border bg-lbx-dark/30 py-6 px-6 text-center">
-                <p className="text-lbx-muted text-sm">No visits yet. Be the first to check in!</p>
-              </div>
-            )}
-          </section>
-
           {/* Popular reviews (most likes) */}
           <section className="mt-8 pt-8 border-t border-lbx-border">
             <h2 className="font-display font-semibold text-lg text-lbx-white mb-4">
@@ -434,16 +351,104 @@ export function AttractionDetail() {
             )}
           </section>
 
+          {/* Timeline: visit history */}
+          <section className="mt-8 pt-8 border-t border-lbx-border">
+            <h2 className="font-display font-semibold text-lg text-lbx-white mb-4">
+              Visit history
+            </h2>
+            {hasRecent ? (
+              <div className="relative">
+                {/* Vertical line */}
+                <div className="absolute left-4 top-2 bottom-2 w-px bg-lbx-border" aria-hidden />
+                <ul className="space-y-0">
+                  {recentList.map((c, idx) => (
+                    <li key={c.id} className="relative flex gap-4 pb-6 last:pb-0">
+                      <div className="relative z-10 flex-shrink-0 w-8 h-8 rounded-full bg-lbx-green/20 border-2 border-lbx-green flex items-center justify-center text-lbx-green text-xs font-bold">
+                        {recentList.length - idx}
+                      </div>
+                      <div className="flex-1 min-w-0 pt-0.5">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          {c.user && (
+                            <Link
+                              to={`/user/${c.user.id}`}
+                              className="font-medium text-lbx-white hover:text-lbx-green transition-colors"
+                            >
+                              {c.user.username || "User"}
+                            </Link>
+                          )}
+                          <span className="text-lbx-muted text-sm">
+                            {new Date(c.visitDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          </span>
+                          {c.rating != null && (
+                            <StarDisplay value={c.rating} className="text-amber-400 text-base" />
+                          )}
+                        </div>
+                        {user && c.user?.id !== user.id ? (
+                          <button
+                            type="button"
+                            disabled={likeLoadingId === c.id}
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              if (!user || likeLoadingId) return;
+                              setLikeLoadingId(c.id);
+                              try {
+                                const res = c.likedByMe
+                                  ? await checkIns.unlike(c.id)
+                                  : await checkIns.like(c.id);
+                                updateCheckInLike(c.id, res.liked, res.likeCount);
+                              } finally {
+                                setLikeLoadingId(null);
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 text-sm text-lbx-muted hover:text-lbx-green transition-colors disabled:opacity-50 mb-1"
+                            aria-label={c.likedByMe ? "Unlike" : "Like"}
+                          >
+                            <span className={c.likedByMe ? "text-lbx-green" : ""}>{c.likedByMe ? "♥" : "♡"}</span>
+                            <span>{c.likeCount ?? 0}</span>
+                          </button>
+                        ) : (
+                          <span className="text-lbx-muted text-sm">♥ {c.likeCount ?? 0}</span>
+                        )}
+                        {user && c.user?.id === user.id ? (
+                          <EditCheckIn
+                            checkInId={c.id}
+                            rating={c.rating ?? null}
+                            review={c.review ?? null}
+                            visitDate={c.visitDate}
+                            onSaved={async () => {
+                              if (id) {
+                                const updated = await attractions.get(id);
+                                setAttraction(updated);
+                              }
+                            }}
+                          />
+                        ) : (
+                          c.review ? (
+                            <p className="text-lbx-text text-sm whitespace-pre-wrap mt-1">{c.review}</p>
+                          ) : (
+                            <p className="text-lbx-muted text-sm italic mt-1">No written review</p>
+                          )
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-lbx-border bg-lbx-dark/30 py-6 px-6 text-center">
+                <p className="text-lbx-muted text-sm">No visits yet. Be the first to check in!</p>
+              </div>
+            )}
+          </section>
+
           <div className="flex flex-wrap gap-3 mt-6">
-            {mapUrl && (
-              <a
-                href={mapUrl}
-                target="_blank"
-                rel="noreferrer"
+            {siteMapUrl && (
+              <Link
+                to={siteMapUrl}
                 className="inline-flex items-center px-4 py-2.5 bg-lbx-green text-lbx-dark font-medium rounded-md hover:opacity-90 transition-opacity text-sm"
               >
                 View on map →
-              </a>
+              </Link>
             )}
             {attraction.sourceUrl && (
               <a
