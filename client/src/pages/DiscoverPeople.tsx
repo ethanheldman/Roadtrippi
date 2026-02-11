@@ -93,11 +93,8 @@ export function DiscoverPeople() {
       <h1 className="font-display font-bold text-2xl sm:text-3xl text-lbx-white mb-2 tracking-tight">
         Discover people
       </h1>
-      <p className="text-lbx-muted text-sm mb-2">
+      <p className="text-lbx-muted text-sm mb-6">
         Find other travelers to follow and see their check-ins and reviews.
-      </p>
-      <p className="text-lbx-muted text-xs mb-6">
-        To test following: sign up a second account (e.g. in an incognito window), then from one account click Follow on the other. Your own row won’t show a Follow button.
       </p>
 
       <form onSubmit={handleSearch} className="flex gap-2 mb-8 max-w-md">

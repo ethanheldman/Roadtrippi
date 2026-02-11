@@ -50,6 +50,9 @@ async function main() {
     } else if (s === "MD") {
       where.state = { in: ["MD", "Maryland"] };
       console.log(`Filtering to state: MD (and "Maryland")`);
+    } else if (s === "MA") {
+      where.state = { in: ["MA", "Massachusetts"] };
+      console.log(`Filtering to state: MA (and "Massachusetts")`);
     } else {
       where.state = s;
       console.log(`Filtering to state: ${s}`);
