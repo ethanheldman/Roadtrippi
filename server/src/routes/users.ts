@@ -56,7 +56,7 @@ export async function usersRoutes(app: FastifyInstance) {
       const search = request.query.search?.trim();
       const skip = (page - 1) * limit;
       const where = search
-        ? { username: { contains: search } }
+        ? { username: { contains: search, mode: "insensitive" } }
         : {};
       const [items, total] = await Promise.all([
         prisma.user.findMany({

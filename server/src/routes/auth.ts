@@ -21,7 +21,12 @@ export async function authRoutes(app: FastifyInstance) {
     }
     const { username, email, password } = body.data;
     const existing = await prisma.user.findFirst({
-      where: { OR: [{ email }, { username }] },
+      where: {
+        OR: [
+          { email: { equals: email, mode: "insensitive" } },
+          { username: { equals: username.trim(), mode: "insensitive" } },
+        ],
+      },
     });
     if (existing) {
       return reply.status(409).send({ error: "Email or username already in use" });
@@ -42,7 +47,9 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: body.error.flatten() });
       }
       const { username, password } = body.data;
-      const user = await prisma.user.findUnique({ where: { username: username.trim() } });
+      const user = await prisma.user.findFirst({
+        where: { username: { equals: username.trim(), mode: "insensitive" } },
+      });
       if (!user || !(await verifyPassword(password, user.passwordHash))) {
         return reply.status(401).send({ error: "Invalid username or password" });
       }
