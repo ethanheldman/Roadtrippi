@@ -57,7 +57,7 @@ export async function usersRoutes(app: FastifyInstance) {
       const search = request.query.search?.trim();
       const skip = (page - 1) * limit;
       const where = search
-        ? { username: { contains: search, mode: "insensitive" } }
+        ? { username: { contains: search, mode: "insensitive" as const } }
         : {};
       const [items, total] = await Promise.all([
         prisma.user.findMany({
@@ -78,7 +78,7 @@ export async function usersRoutes(app: FastifyInstance) {
         prisma.user.count({ where }),
       ]);
       const usersList = items.map((u) => {
-        const { _count, ...rest } = u;
+        const { _count, ...rest } = u as typeof u & { _count: { checkIns: number; followers: number } };
         return { ...rest, checkInCount: _count.checkIns, followersCount: _count.followers };
       });
       return reply.send({ items: usersList, total, page, limit });
