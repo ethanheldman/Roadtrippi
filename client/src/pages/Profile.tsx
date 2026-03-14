@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { checkIns, friends, users, getAvatarSrc } from "../api";
+import { checkIns, friends, users, getAvatarSrc, type UserSummary } from "../api";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE_MB = 2;
@@ -28,9 +28,11 @@ export function Profile() {
   const [social, setSocial] = useState<SocialCounts | null>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const [editUsername, setEditUsername] = useState("");
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
   const [editBio, setEditBio] = useState("");
   const [editLocation, setEditLocation] = useState("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarDragOver, setAvatarDragOver] = useState(false);
@@ -38,6 +40,14 @@ export function Profile() {
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [podiumOrderIds, setPodiumOrderIds] = useState<string[]>([]);
   const [ratingBarSelected, setRatingBarSelected] = useState<number | null>(null);
+  // Admin (eheld): change another user's username
+  const [adminUsernameSearch, setAdminUsernameSearch] = useState("");
+  const [adminSearchResults, setAdminSearchResults] = useState<UserSummary[]>([]);
+  const [adminSelectedUser, setAdminSelectedUser] = useState<UserSummary | null>(null);
+  const [adminNewUsername, setAdminNewUsername] = useState("");
+  const [adminUsernameError, setAdminUsernameError] = useState<string | null>(null);
+  const [adminUsernameSaving, setAdminUsernameSaving] = useState(false);
+  const [adminSectionOpen, setAdminSectionOpen] = useState(false);
 
   // Top 3 from check-ins: by rating (highest first), then by visit date (newest)
   const podiumCheckIns = [...checkInList]
@@ -70,6 +80,7 @@ export function Profile() {
 
   useEffect(() => {
     if (user) {
+      setEditUsername(user.username ?? "");
       setEditAvatarUrl(user.avatarUrl ?? "");
       setEditBio(user.bio ?? "");
       setEditLocation(user.location ?? "");
@@ -97,16 +108,27 @@ export function Profile() {
     if (saving) return;
     setSaving(true);
     setAvatarError(null);
+    setUsernameError(null);
+    const newUsername = editUsername.trim();
+    if (newUsername.length > 0 && newUsername.length < 2) {
+      setUsernameError("Username must be at least 2 characters.");
+      setSaving(false);
+      return;
+    }
     try {
       await users.updateMe({
+        ...(newUsername.length >= 2 && { username: newUsername }),
         avatarUrl: editAvatarUrl.trim() || null,
         bio: editBio.trim() || null,
         location: editLocation.trim() || null,
       });
       await refresh();
       setEditOpen(false);
-    } catch {
-      // leave modal open
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg && (msg.toLowerCase().includes("username") || msg.toLowerCase().includes("already in use"))) {
+        setUsernameError(msg);
+      }
     } finally {
       setSaving(false);
     }
@@ -262,6 +284,125 @@ export function Profile() {
           <p className="text-xs text-lbx-muted mt-0.5">Followers</p>
         </Link>
       </div>
+
+      {/* Admin (eheld): change another user's username */}
+      {user?.username?.toLowerCase() === "eheld" && (
+        <section className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
+          <button
+            type="button"
+            onClick={() => setAdminSectionOpen((o) => !o)}
+            className="flex items-center gap-2 text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors"
+          >
+            {adminSectionOpen ? "▼" : "▶"} Admin: change a user&apos;s username
+          </button>
+          {adminSectionOpen && (
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-lbx-muted mb-1">Find user (search by current username)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={adminUsernameSearch}
+                    onChange={(e) => {
+                      setAdminUsernameSearch(e.target.value);
+                      setAdminSelectedUser(null);
+                      setAdminNewUsername("");
+                      setAdminUsernameError(null);
+                    }}
+                    onBlur={() => {
+                      if (adminUsernameSearch.trim().length >= 2) {
+                        users.list({ search: adminUsernameSearch.trim(), limit: 10 }).then((r) => setAdminSearchResults(r.items)).catch(() => setAdminSearchResults([]));
+                      } else {
+                        setAdminSearchResults([]);
+                      }
+                    }}
+                    placeholder="e.g. email or current username"
+                    className="flex-1 px-3 py-2 bg-lbx-dark border border-lbx-border rounded-md text-lbx-white text-sm placeholder-lbx-muted focus:border-lbx-green focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (adminUsernameSearch.trim().length >= 2) {
+                        users.list({ search: adminUsernameSearch.trim(), limit: 10 }).then((r) => setAdminSearchResults(r.items)).catch(() => setAdminSearchResults([]));
+                      }
+                    }}
+                    className="px-3 py-2 rounded-md bg-lbx-card border border-lbx-border text-sm text-lbx-muted hover:text-lbx-white"
+                  >
+                    Search
+                  </button>
+                </div>
+              </div>
+              {adminSearchResults.length > 0 && (
+                <div>
+                  <p className="text-xs text-lbx-muted mb-1">Select user:</p>
+                  <ul className="space-y-1 max-h-32 overflow-y-auto rounded border border-lbx-border bg-lbx-dark p-2">
+                    {adminSearchResults.map((u) => (
+                      <li key={u.id}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAdminSelectedUser(u);
+                            setAdminNewUsername("");
+                            setAdminUsernameError(null);
+                          }}
+                          className={`w-full text-left px-2 py-1.5 rounded text-sm ${adminSelectedUser?.id === u.id ? "bg-lbx-green/20 text-lbx-green" : "text-lbx-white hover:bg-lbx-card"}`}
+                        >
+                          {u.username} <span className="text-lbx-muted">({u.id.slice(0, 8)}…)</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {adminSelectedUser && (
+                <div className="flex flex-wrap items-end gap-2 pt-2 border-t border-lbx-border">
+                  <div className="min-w-[160px]">
+                    <label className="block text-xs font-medium text-lbx-muted mb-1">New username for {adminSelectedUser.username}</label>
+                    <input
+                      type="text"
+                      value={adminNewUsername}
+                      onChange={(e) => {
+                        setAdminNewUsername(e.target.value);
+                        setAdminUsernameError(null);
+                      }}
+                      placeholder="2–50 characters"
+                      minLength={2}
+                      maxLength={50}
+                      className="w-full px-3 py-2 bg-lbx-dark border border-lbx-border rounded-md text-lbx-white text-sm placeholder-lbx-muted focus:border-lbx-green focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={adminUsernameSaving || adminNewUsername.trim().length < 2}
+                    onClick={async () => {
+                      if (!adminSelectedUser || adminNewUsername.trim().length < 2) return;
+                      setAdminUsernameError(null);
+                      setAdminUsernameSaving(true);
+                      try {
+                        await users.updateUsername(adminSelectedUser.id, adminNewUsername.trim());
+                        setAdminSelectedUser(null);
+                        setAdminNewUsername("");
+                        setAdminUsernameSearch("");
+                        setAdminSearchResults([]);
+                      } catch (err) {
+                        setAdminUsernameError(err instanceof Error ? err.message : "Failed to update username");
+                      } finally {
+                        setAdminUsernameSaving(false);
+                      }
+                    }}
+                    className="px-3 py-2 rounded-md bg-amber-600 text-white text-sm font-medium hover:bg-amber-500 disabled:opacity-50"
+                  >
+                    {adminUsernameSaving ? "Saving…" : "Change username"}
+                  </button>
+                </div>
+              )}
+              {adminUsernameError && (
+                <p className="text-sm text-red-400" role="alert">{adminUsernameError}</p>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Ratings breakdown (Letterboxd-style) */}
       {totalRatings > 0 && (
@@ -624,6 +765,25 @@ export function Profile() {
                     className="mt-2 w-full px-4 py-2.5 bg-lbx-dark border border-lbx-border rounded-md text-lbx-white placeholder-lbx-muted focus:border-lbx-green focus:ring-1 focus:ring-lbx-green focus:outline-none text-sm"
                   />
                 )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-lbx-muted mb-1">Username</label>
+                <input
+                  type="text"
+                  value={editUsername}
+                  onChange={(e) => {
+                    setEditUsername(e.target.value);
+                    setUsernameError(null);
+                  }}
+                  placeholder="Username"
+                  minLength={2}
+                  maxLength={50}
+                  className="w-full px-4 py-2.5 bg-lbx-dark border border-lbx-border rounded-md text-lbx-white placeholder-lbx-muted focus:border-lbx-green focus:ring-1 focus:ring-lbx-green focus:outline-none text-sm"
+                />
+                {usernameError && (
+                  <p className="text-sm text-red-400 mt-1" role="alert">{usernameError}</p>
+                )}
+                <p className="text-xs text-lbx-muted mt-1">2–50 characters. Used for login and profile URL.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-lbx-muted mb-1">Bio</label>

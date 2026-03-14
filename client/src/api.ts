@@ -226,11 +226,17 @@ export const users = {
     form.append("avatar", file, file.name || "image.jpg");
     return apiUpload<{ avatarUrl: string }>("/api/users/me/avatar", form);
   },
-  updateMe: (data: { avatarUrl?: string | null; bio?: string | null; location?: string | null }) =>
+  updateMe: (data: { username?: string; avatarUrl?: string | null; bio?: string | null; location?: string | null }) =>
     api<{ id: string; username: string; email: string; avatarUrl?: string | null; bio?: string | null; location?: string | null; createdAt: string }>(
       "/api/users/me",
       { method: "PATCH", body: JSON.stringify(data) }
     ),
+  /** Admin only: change another user's username */
+  updateUsername: (userId: string, username: string) =>
+    api<{ id: string; username: string }>("/api/users/" + encodeURIComponent(userId) + "/username", {
+      method: "PATCH",
+      body: JSON.stringify({ data: { username: username.trim() } }),
+    }),
   list: (params?: { page?: number; limit?: number; search?: string }) => {
     const q = new URLSearchParams();
     if (params?.page) q.set("page", String(params.page));

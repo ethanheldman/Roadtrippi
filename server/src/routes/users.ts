@@ -20,6 +20,7 @@ const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const EXT_BY_MIME: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
 const updateMeBody = z.object({
+  username: z.string().min(2).max(50).optional(),
   // Allow full URLs or relative paths (e.g. /uploads/avatars/xxx.jpg) so saved profile keeps upload path
   avatarUrl: z
     .preprocess(
@@ -145,12 +146,23 @@ export async function usersRoutes(app: FastifyInstance) {
     return reply.send({ avatarUrl });
   });
 
-  // --- Update my profile (avatar, bio, location) ---
+  // --- Update my profile (username, avatar, bio, location) ---
   app.patch("/me", { preHandler: auth }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = await requireAuth(request as FastifyRequest<{ Params?: Record<string, string> }>, reply);
     const body = updateMeBody.safeParse(request.body);
     if (!body.success) return reply.status(400).send({ error: body.error.flatten() });
-    const data: { avatarUrl?: string | null; bio?: string | null; location?: string | null } = {};
+    const data: { username?: string; avatarUrl?: string | null; bio?: string | null; location?: string | null } = {};
+    if (body.data.username !== undefined) {
+      const newUsername = body.data.username.trim();
+      const existing = await prisma.user.findFirst({
+        where: {
+          username: { equals: newUsername, mode: "insensitive" },
+          id: { not: userId },
+        },
+      });
+      if (existing) return reply.status(409).send({ error: "Username already in use" });
+      data.username = newUsername;
+    }
     if (body.data.avatarUrl !== undefined) data.avatarUrl = body.data.avatarUrl;
     if (body.data.bio !== undefined) data.bio = body.data.bio;
     if (body.data.location !== undefined) data.location = body.data.location;
@@ -514,6 +526,39 @@ export async function usersRoutes(app: FastifyInstance) {
     const items = rows.map((r) => r.follower);
     return reply.send({ items });
   });
+
+  /** Admin only (eheld): change another user's username */
+  const adminUsernameBody = z.object({
+    data: z.object({ username: z.string().min(2).max(50) }),
+  });
+  app.patch<{ Params: { id: string } }>(
+    "/:id/username",
+    { preHandler: auth },
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      const { userId } = await requireAuth(request as FastifyRequest<{ Params?: Record<string, string> }>, reply);
+      const me = await prisma.user.findUnique({ where: { id: userId }, select: { username: true } });
+      if (!me || me.username.toLowerCase() !== "eheld") {
+        return reply.status(403).send({ error: "Only the admin can change other users' usernames." });
+      }
+      const body = adminUsernameBody.safeParse(request.body);
+      if (!body.success) return reply.status(400).send({ error: body.error.flatten() });
+      const targetId = request.params.id;
+      const newUsername = body.data.data.username.trim();
+      const existing = await prisma.user.findFirst({
+        where: {
+          username: { equals: newUsername, mode: "insensitive" },
+          id: { not: targetId },
+        },
+      });
+      if (existing) return reply.status(409).send({ error: "Username already in use" });
+      const updated = await prisma.user.update({
+        where: { id: targetId },
+        data: { username: newUsername },
+        select: { id: true, username: true },
+      });
+      return reply.send(updated);
+    }
+  );
 
   /** Public: list of this user's public lists */
   app.get<{ Params: { id: string } }>("/:id/lists", async (request, reply) => {
