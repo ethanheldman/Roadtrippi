@@ -10,7 +10,6 @@ const src = path.join(root, "server", "dist");
 const dest = path.join(root, "api", "server-dist");
 
 if (!fs.existsSync(src)) {
-  console.log("server/dist not found; running tsc in server...");
   try {
     execSync("npm run build", { cwd: path.join(root, "server"), stdio: "inherit" });
   } catch (e) {
@@ -29,7 +28,6 @@ try {
   }
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   fs.cpSync(src, dest, { recursive: true });
-  console.log("Copied server/dist → api/server-dist");
 } catch (err) {
   console.error("Copy failed:", err.message);
   process.exit(1);

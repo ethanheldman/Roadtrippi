@@ -9,7 +9,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const FREMONT_TROLL_IMAGE =
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Fremont_randoms_-_Flickr_-_eliduke.jpg/800px-Fremont_randoms_-_Flickr_-_eliduke.jpg";
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Fremont_Troll_2011.jpg/800px-Fremont_Troll_2011.jpg";
 const FREMONT_TROLL_SOURCE = "https://www.roadsideamerica.com/location/wa";
 
 async function main() {
