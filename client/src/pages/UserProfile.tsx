@@ -167,7 +167,6 @@ export function UserProfile() {
               ? `linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.7) 100%), url(${bannerImage})`
               : "linear-gradient(135deg, #161b22 0%, #0d1117 50%, #00e05415 100%)",
           }}
-          referrerPolicy="no-referrer"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-lbx-dark via-transparent to-transparent pointer-events-none" aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-end gap-3">
