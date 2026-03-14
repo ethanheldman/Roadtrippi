@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { checkIns, friends, users, getAvatarSrc, type UserSummary } from "../api";
+import { AttractionImage } from "../components/AttractionImage";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE_MB = 2;
@@ -219,6 +220,7 @@ export function Profile() {
               ? `linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.7) 100%), url(${bannerImage})`
               : "linear-gradient(135deg, #161b22 0%, #0d1117 50%, #00e05415 100%)",
           }}
+          referrerPolicy="no-referrer"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-lbx-dark via-transparent to-transparent pointer-events-none" aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-end gap-3">
@@ -540,11 +542,11 @@ export function Profile() {
                         }}
                       >
                         <div className={`relative w-full flex-1 min-h-0 rounded-t-lg overflow-hidden border border-lbx-border bg-lbx-card group-hover:border-lbx-green/60 transition-colors ${canReorderPodium ? "cursor-grab active:cursor-grabbing" : ""}`}>
-                          {c.attraction.imageUrl ? (
-                            <img src={c.attraction.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" draggable={false} />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-2xl text-lbx-muted/50 bg-lbx-border/80 pointer-events-none" draggable={false}>🗿</div>
-                          )}
+                          <AttractionImage
+                            imageUrl={c.attraction.imageUrl}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none"
+                            placeholder={<div className="w-full h-full flex items-center justify-center text-2xl text-lbx-muted/50 bg-lbx-border/80 pointer-events-none" draggable={false}>🗿</div>}
+                          />
                           <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent p-1.5 flex justify-center pointer-events-none">
                             <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-lbx-green text-lbx-dark font-display font-bold text-sm flex items-center justify-center">
                               {place}
@@ -597,15 +599,11 @@ export function Profile() {
                 className="group block bg-lbx-card rounded-lg border border-lbx-border overflow-hidden hover:border-lbx-green/50 transition-colors"
               >
                 <div className="poster-aspect bg-lbx-border/80 relative overflow-hidden">
-                  {c.attraction.imageUrl ? (
-                    <img
-                      src={c.attraction.imageUrl}
-                      alt=""
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-3xl text-lbx-muted/50">🗿</div>
-                  )}
+                  <AttractionImage
+                    imageUrl={c.attraction.imageUrl}
+                    className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                    placeholder={<div className="w-full h-full flex items-center justify-center text-3xl text-lbx-muted/50">🗿</div>}
+                  />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-2">
                     <span className="text-xs text-lbx-green font-medium">★ {c.rating}/5</span>
                   </div>
@@ -650,15 +648,11 @@ export function Profile() {
               >
                 <div className="relative poster-aspect bg-lbx-border/80 overflow-hidden">
                   <Link to={`/attraction/${c.attraction.id}`} className="absolute inset-0 z-0">
-                    {c.attraction.imageUrl ? (
-                      <img
-                        src={c.attraction.imageUrl}
-                        alt=""
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-3xl text-lbx-muted/50">🗿</div>
-                    )}
+                    <AttractionImage
+                      imageUrl={c.attraction.imageUrl}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                      placeholder={<div className="w-full h-full flex items-center justify-center text-3xl text-lbx-muted/50">🗿</div>}
+                    />
                   </Link>
                   <div
                     className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/90 to-transparent p-2"

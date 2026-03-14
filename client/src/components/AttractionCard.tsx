@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { AttractionImage } from "./AttractionImage";
 import type { Attraction } from "../api";
 
 type AttractionCardProps = {
@@ -6,7 +7,6 @@ type AttractionCardProps = {
 };
 
 export function AttractionCard({ a }: AttractionCardProps) {
-  const imageUrl = a.imageUrl;
   const showRating = a.avgRating != null && a.avgRating > 0;
   const to = `/attraction/${a.id}`;
 
@@ -19,17 +19,15 @@ export function AttractionCard({ a }: AttractionCardProps) {
       >
         <div className="h-full flex flex-col bg-lbx-card rounded-lg overflow-hidden border border-lbx-border hover:border-lbx-green/50 hover:shadow-card-hover transition-all duration-200 shadow-card">
           <div className="poster-aspect flex-shrink-0 w-full bg-lbx-border/80 relative overflow-hidden">
-            {imageUrl ? (
-              <img
-                src={imageUrl}
-                alt=""
-                className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center min-h-0 bg-lbx-border/80 text-lbx-muted/50">
-                <span className="text-7xl sm:text-8xl md:text-9xl leading-none select-none" aria-hidden>🗿</span>
-              </div>
-            )}
+            <AttractionImage
+              imageUrl={a.imageUrl}
+              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+              placeholder={
+                <div className="w-full h-full flex items-center justify-center min-h-0 bg-lbx-border/80 text-lbx-muted/50">
+                  <span className="text-7xl sm:text-8xl md:text-9xl leading-none select-none" aria-hidden>🗿</span>
+                </div>
+              }
+            />
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-3 py-2.5 flex items-center justify-between">
               {showRating && (
                 <span className="text-base font-semibold text-amber-400 drop-shadow-sm">

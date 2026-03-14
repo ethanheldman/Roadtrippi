@@ -5,6 +5,7 @@ import type { Marker as LeafletMarker } from "leaflet";
 import L from "leaflet";
 import { attractions, checkIns, type MapAttraction } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { AttractionImage } from "../components/AttractionImage";
 import { SaveToWantToSee } from "../components/SaveToWantToSee";
 import "leaflet/dist/leaflet.css";
 
@@ -314,13 +315,10 @@ export function Map() {
             >
               <Popup>
                 <div className="min-w-[180px]">
-                  {a.imageUrl && (
-                    <img
-                      src={a.imageUrl}
-                      alt=""
-                      className="w-full h-24 object-cover rounded mb-2"
-                    />
-                  )}
+                  <AttractionImage
+                    imageUrl={a.imageUrl}
+                    className="w-full h-24 object-cover rounded mb-2"
+                  />
                   <p className="font-semibold text-gray-900">{a.name}</p>
                   {(a.city || a.state) && (
                     <p className="text-sm text-gray-600">

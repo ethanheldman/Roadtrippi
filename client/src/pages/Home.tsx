@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AttractionCard } from "../components/AttractionCard";
+import { AttractionImage } from "../components/AttractionImage";
 import { CardGridSkeleton } from "../components/CardSkeleton";
 import { StarDisplay } from "../components/StarDisplay";
 import { useAuth } from "../context/AuthContext";
@@ -240,11 +241,11 @@ export function Home() {
                     onClick={() => setReviewDetailCheckIn(c)}
                   >
                     <div className="poster-aspect bg-lbx-border/80 relative overflow-hidden">
-                      {c.attraction.imageUrl ? (
-                        <img src={c.attraction.imageUrl} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-3xl text-lbx-muted/50">🗿</div>
-                      )}
+                      <AttractionImage
+                        imageUrl={c.attraction.imageUrl}
+                        className="w-full h-full object-cover"
+                        placeholder={<div className="w-full h-full flex items-center justify-center text-3xl text-lbx-muted/50">🗿</div>}
+                      />
                     </div>
                     <div className="p-2 space-y-1.5 min-w-0">
                       <div className="min-w-0">
@@ -308,15 +309,11 @@ export function Home() {
               />
               <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-lbx-dark/95 border border-lbx-border/60 rounded-xl shadow-2xl z-50 p-6 flex gap-6 backdrop-blur-sm">
                 <div className="flex-shrink-0 w-36 sm:w-44">
-                  {reviewDetailCheckIn.attraction.imageUrl ? (
-                    <img
-                      src={reviewDetailCheckIn.attraction.imageUrl}
-                      alt=""
-                      className="w-full rounded-lg object-cover poster-aspect"
-                    />
-                  ) : (
-                    <div className="w-full poster-aspect rounded-lg bg-lbx-border flex items-center justify-center text-4xl text-lbx-muted/50">🗿</div>
-                  )}
+                  <AttractionImage
+                    imageUrl={reviewDetailCheckIn.attraction.imageUrl}
+                    className="w-full rounded-lg object-cover poster-aspect"
+                    placeholder={<div className="w-full poster-aspect rounded-lg bg-lbx-border flex items-center justify-center text-4xl text-lbx-muted/50">🗿</div>}
+                  />
                 </div>
                 <div className="min-w-0 flex-1">
                   <Link

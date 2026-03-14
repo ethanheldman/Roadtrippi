@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { attractions, checkIns, getAvatarSrc, type AttractionDetail as AttractionDetailType, type RecentCheckIn } from "../api";
 import { AddToList } from "../components/AddToList";
+import { AttractionImage } from "../components/AttractionImage";
 import { SaveToWantToSee } from "../components/SaveToWantToSee";
 import { EditCheckIn } from "../components/EditCheckIn";
 import { StarRating } from "../components/StarRating";
@@ -118,17 +119,13 @@ export function AttractionDetail() {
       </button>
       <article className="bg-lbx-card rounded-lg border border-lbx-border overflow-hidden shadow-card">
         <div className="aspect-video w-full bg-lbx-border overflow-hidden flex items-center justify-center">
-          {attraction.imageUrl ? (
-            <img
-              src={attraction.imageUrl}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <span className="text-8xl sm:text-9xl leading-none select-none text-lbx-muted/30" aria-hidden>
-              🗿
-            </span>
-          )}
+          <AttractionImage
+            imageUrl={attraction.imageUrl}
+            className="w-full h-full object-cover"
+            placeholder={
+              <span className="text-8xl sm:text-9xl leading-none select-none text-lbx-muted/30" aria-hidden>🗿</span>
+            }
+          />
         </div>
         <div className="p-6 sm:p-8">
           <h1 className="font-display font-bold text-2xl sm:text-3xl text-lbx-white tracking-tight">{attraction.name}</h1>
