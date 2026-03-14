@@ -2,6 +2,8 @@
 
 A Letterboxd-style app for roadside attractions: discover, rate, review, and share visits to America's weirdest roadside oddities.
 
+**Production:** [roadtrippi.com](https://roadtrippi.com) (Vercel; set custom domain in Project Settings → Domains).
+
 ## Quick start (no Docker or extra installs)
 
 Uses **SQLite** by default—everything runs locally with no database server.
