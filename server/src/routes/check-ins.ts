@@ -146,10 +146,13 @@ export async function checkInsRoutes(app: FastifyInstance) {
     }
   );
 
-  /** Add comment on a check-in */
+  /** Add comment on a check-in — rate-limited to deter spam */
   app.post<{ Params: { id: string }; Body: unknown }>(
     "/:id/comments",
-    { preHandler: auth },
+    {
+      preHandler: auth,
+      config: { rateLimit: { max: 20, timeWindow: "1 minute" } },
+    },
     async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
       const { userId } = await requireAuth(request, reply);
       const { id: checkInId } = request.params;

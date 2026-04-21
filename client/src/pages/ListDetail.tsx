@@ -190,10 +190,13 @@ export function ListDetail() {
           {list.description && (
             <p className="text-lbx-muted mt-1">{list.description}</p>
           )}
-          <p className="text-sm text-lbx-muted mt-1">{list.items.length} places</p>
+          <p className="text-sm text-lbx-muted mt-1">
+            {list.items.length} {list.items.length === 1 ? "place" : "places"}
+          </p>
         </div>
         {list.items.length > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <TripDirectionsButton items={sortedItems} />
             <span className="text-[11px] font-medium text-lbx-muted/90 uppercase tracking-widest">Sort by</span>
             <select
               value={sortIndex}
@@ -320,5 +323,47 @@ export function ListDetail() {
         </section>
       )}
     </div>
+  );
+}
+
+/**
+ * T3.2 Trip planning MVP: turn any List into a navigable route via Google Maps.
+ *
+ * We piggyback on the existing `List` model (ordered attractions w/ positions)
+ * instead of introducing a TripPlan table — that would need a migration and
+ * the List model already encodes everything we need for v1.
+ *
+ * Google Maps URL format:
+ *   https://www.google.com/maps/dir/?api=1&destination=<last>&waypoints=<a>|<b>|...
+ * We cap the stop count to 10 (Google's practical waypoint limit for unsigned
+ * callers) and only include attractions with real coordinates. If fewer than
+ * two stops have coords, we hide the button — nothing to route.
+ */
+function TripDirectionsButton({ items }: { items: ListItemWithAttraction[] }) {
+  const WAYPOINT_LIMIT = 10;
+  const withCoords = items.filter((i) => i.attraction.latitude && i.attraction.longitude);
+  if (withCoords.length < 2) return null;
+
+  const clipped = withCoords.slice(0, WAYPOINT_LIMIT);
+  const coords = clipped.map((i) => `${i.attraction.latitude},${i.attraction.longitude}`);
+  const destination = coords[coords.length - 1]!;
+  const waypoints = coords.slice(0, -1).join("|");
+  const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&waypoints=${encodeURIComponent(waypoints)}&travelmode=driving`;
+
+  const droppedCount = withCoords.length - clipped.length;
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="inline-flex items-center gap-1.5 px-3 py-2 bg-lbx-green text-lbx-dark font-medium rounded-md text-sm hover:opacity-95 transition-opacity"
+      title={droppedCount > 0
+        ? `Opens the first ${WAYPOINT_LIMIT} stops in Google Maps (${droppedCount} more skipped)`
+        : "Opens in Google Maps with this list as a driving route"}
+    >
+      <span aria-hidden>🧭</span>
+      Get directions
+    </a>
   );
 }

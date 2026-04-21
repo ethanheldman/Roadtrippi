@@ -4,6 +4,7 @@ import { z } from "zod";
 import { put } from "@vercel/blob";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, getOptionalUserId } from "../lib/auth.js";
+import { computeEarnedBadges } from "../lib/badges.js";
 // Use same base as app.ts so static files are served from where we write (important for Vercel /tmp)
 const isVercel = typeof process.env.VERCEL !== "undefined";
 const AVATAR_DIR = isVercel
@@ -549,5 +550,71 @@ export async function usersRoutes(app) {
             followingCount: _count.following,
             recentCheckIns: checkIns,
         });
+    });
+    /**
+     * T3.1: Earned badges for a user, computed on demand from their check-ins.
+     * Intentionally derived (not persisted) so we can tweak/rebalance the catalogue
+     * without a migration. If badges become expensive or have to drive notifications,
+     * cache the result on User or move to the existing `Badge` table.
+     */
+    app.get("/:id/badges", async (request, reply) => {
+        const { id: targetId } = request.params;
+        const user = await prisma.user.findUnique({ where: { id: targetId }, select: { id: true } });
+        if (!user)
+            return reply.status(404).send({ error: "User not found" });
+        const checkIns = await prisma.checkIn.findMany({
+            where: { userId: targetId },
+            select: {
+                rating: true,
+                review: true,
+                visitDate: true,
+                attraction: {
+                    select: {
+                        state: true,
+                        attractionCategories: { select: { categoryId: true } },
+                    },
+                },
+            },
+        });
+        const states = new Set();
+        const categories = new Set();
+        const perDay = new Map();
+        let fiveStar = 0;
+        let reviewed = 0;
+        let earliest = null;
+        for (const c of checkIns) {
+            if (c.attraction?.state)
+                states.add(c.attraction.state.slice(0, 2).toUpperCase());
+            for (const ac of c.attraction?.attractionCategories ?? []) {
+                categories.add(ac.categoryId);
+            }
+            if (c.rating === 5)
+                fiveStar++;
+            if (c.review && c.review.trim().length > 0)
+                reviewed++;
+            const dayKey = c.visitDate.toISOString().slice(0, 10);
+            perDay.set(dayKey, (perDay.get(dayKey) ?? 0) + 1);
+            if (!earliest || c.visitDate < earliest)
+                earliest = c.visitDate;
+        }
+        const yearsAgo = earliest
+            ? (Date.now() - earliest.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
+            : null;
+        const ctx = {
+            totalCheckIns: checkIns.length,
+            distinctStates: states.size,
+            distinctCategories: categories.size,
+            fiveStarCheckIns: fiveStar,
+            reviewedCheckIns: reviewed,
+            maxCheckInsInDay: Math.max(0, ...perDay.values()),
+            earliestVisitYearsAgo: yearsAgo,
+        };
+        const earned = computeEarnedBadges(ctx).map((b) => ({
+            slug: b.slug,
+            title: b.title,
+            description: b.description,
+            emoji: b.emoji,
+        }));
+        return reply.send({ items: earned, stats: ctx });
     });
 }

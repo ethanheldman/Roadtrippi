@@ -14,7 +14,11 @@ const loginBody = z.object({
 });
 
 export async function authRoutes(app: FastifyInstance) {
-  app.post("/register", async (request: FastifyRequest, reply: FastifyReply) => {
+  // T2.5: throttle unauthenticated write endpoints to limit brute-force / spam.
+  // 10 requests/min per IP is generous for real users and painful for scripts.
+  const authLimit = { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } };
+
+  app.post("/register", authLimit, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = registerBody.safeParse(request.body);
     if (!body.success) {
       return reply.status(400).send({ error: body.error.flatten() });
@@ -45,7 +49,7 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.send({ user, token });
   });
 
-  app.post("/login", async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post("/login", authLimit, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = loginBody.safeParse(request.body);
       if (!body.success) {

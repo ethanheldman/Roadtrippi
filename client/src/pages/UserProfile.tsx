@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { users, friends, getAvatarSrc } from "../api";
 import { AttractionImage } from "../components/AttractionImage";
+import { BadgeShelf } from "../components/BadgeShelf";
 
 type CheckInItem = {
   id: string;
@@ -251,6 +252,8 @@ export function UserProfile() {
         </Link>
       </div>
 
+      <BadgeShelf userId={profile.id} />
+
       {/* Ratings breakdown — same as own profile, read-only labels */}
       {totalRatings > 0 && (
         <section className="mb-6">
@@ -343,7 +346,6 @@ export function UserProfile() {
                         <AttractionImage
                           imageUrl={c.attraction.imageUrl}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none"
-                          placeholder={<div className="w-full h-full flex items-center justify-center text-2xl text-lbx-muted/50 bg-lbx-border/80 pointer-events-none" draggable={false}>🗿</div>}
                         />
                         <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent p-1.5 flex justify-center pointer-events-none">
                           <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-lbx-green text-lbx-dark font-display font-bold text-sm flex items-center justify-center">
@@ -399,7 +401,6 @@ export function UserProfile() {
                   <AttractionImage
                     imageUrl={c.attraction.imageUrl}
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                    placeholder={<div className="w-full h-full flex items-center justify-center text-3xl text-lbx-muted/50">🗿</div>}
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-2">
                     <span className="text-xs text-lbx-green font-medium">★ {c.rating}/5</span>
@@ -439,7 +440,6 @@ export function UserProfile() {
                   <AttractionImage
                     imageUrl={c.attraction.imageUrl}
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                    placeholder={<div className="w-full h-full flex items-center justify-center text-3xl text-lbx-muted/50">🗿</div>}
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-2">
                     <span className="text-xs text-lbx-green font-medium">★ {c.rating ?? "—"}/5</span>

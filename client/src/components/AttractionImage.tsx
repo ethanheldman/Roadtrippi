@@ -4,9 +4,28 @@ type AttractionImageProps = {
   imageUrl: string | null | undefined;
   alt?: string;
   className?: string;
-  /** Optional placeholder when no image or load fails. Defaults to 🗿 in a flex container. */
+  /** Optional placeholder when no image or load fails. Defaults to the Roadtrippi muffler-man. */
   placeholder?: React.ReactNode;
 };
+
+/**
+ * Branded placeholder: uses the site's existing muffler-man logo at ~40% opacity on a
+ * dimmed card background. Replaces the 🗿 emoji which felt generic and off-brand.
+ * Accepts any ReactNode via `placeholder` for callers that want a larger / custom fallback.
+ */
+export function AttractionPlaceholder({ className = "" }: { className?: string }) {
+  return (
+    <div className={`w-full h-full flex items-center justify-center min-h-0 bg-lbx-border/60 ${className}`}>
+      <img
+        src="/roadtrippi-logo.png"
+        alt=""
+        aria-hidden
+        className="w-1/2 max-w-[80px] opacity-30 mix-blend-luminosity select-none"
+        draggable={false}
+      />
+    </div>
+  );
+}
 
 /**
  * Renders an attraction image with referrerPolicy="no-referrer" so external hosts
@@ -15,14 +34,9 @@ type AttractionImageProps = {
 export function AttractionImage({ imageUrl, alt = "", className, placeholder }: AttractionImageProps) {
   const [error, setError] = useState(false);
   const showPlaceholder = !imageUrl || error;
-  const defaultPlaceholder = (
-    <div className="w-full h-full flex items-center justify-center min-h-0 bg-lbx-border/80 text-lbx-muted/50">
-      <span className="text-4xl leading-none select-none" aria-hidden>🗿</span>
-    </div>
-  );
 
   if (showPlaceholder) {
-    return <>{placeholder ?? defaultPlaceholder}</>;
+    return <>{placeholder ?? <AttractionPlaceholder />}</>;
   }
 
   return (

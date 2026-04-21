@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { getOptionalUserId } from "../lib/auth.js";
 import { resolveCityState } from "../lib/address.js";
+import { normalizeStateCode, stateFilter, STATE_BBOX } from "../lib/states.js";
 /** Haversine distance in miles between two lat/lng points */
 function distanceMiles(lat1, lng1, lat2, lng2) {
     const R = 3959; // Earth radius in miles
@@ -15,28 +16,7 @@ function distanceMiles(lat1, lng1, lat2, lng2) {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 }
-/** Normalize state to 2-letter uppercase (e.g. "me" -> "ME", "Maine" -> "ME"). */
-function normalizeStateCode(state) {
-    if (!state || !state.trim())
-        return undefined;
-    const s = state.trim();
-    if (s.length === 2)
-        return s.toUpperCase();
-    const nameToCode = {
-        maine: "ME", alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA",
-        colorado: "CO", connecticut: "CT", delaware: "DE", florida: "FL", georgia: "GA",
-        hawaii: "HI", idaho: "ID", illinois: "IL", indiana: "IN", iowa: "IA", kansas: "KS",
-        kentucky: "KY", louisiana: "LA", maryland: "MD", massachusetts: "MA", michigan: "MI",
-        minnesota: "MN", mississippi: "MS", missouri: "MO", montana: "MT", nebraska: "NE",
-        nevada: "NV", "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
-        "north carolina": "NC", "north dakota": "ND", ohio: "OH", oklahoma: "OK", oregon: "OR",
-        pennsylvania: "PA", "rhode island": "RI", "south carolina": "SC", "south dakota": "SD",
-        tennessee: "TN", texas: "TX", utah: "UT", vermont: "VT", virginia: "VA", washington: "WA",
-        "west virginia": "WV", wisconsin: "WI", wyoming: "WY",
-    };
-    const code = nameToCode[s.toLowerCase()];
-    return code ?? (s.length >= 2 ? s.slice(0, 2).toUpperCase() : undefined);
-}
+// normalizeStateCode + state-name map moved to ../lib/states.ts
 const querySchema = z.object({
     page: z.coerce.number().min(1).default(1),
     limit: z.coerce.number().min(1).max(100).default(24),
@@ -93,23 +73,16 @@ export async function attractionsRoutes(app) {
             longitude: lngFilter,
         };
         if (state) {
-            // Mirror the state-code/full-name duality until the column is normalized.
-            if (state === "ME")
-                where.state = { in: ["ME", "Maine"] };
-            else if (state === "CA")
-                where.state = { in: ["CA", "California"] };
-            else if (state === "TX")
-                where.state = { in: ["TX", "Texas"] };
-            else if (state === "MA")
-                where.state = { in: ["MA", "Massachusetts"] };
-            else if (state === "MO")
-                where.state = { in: ["MO", "Missouri"] };
-            else if (state === "MD")
-                where.state = { in: ["MD", "Maryland"] };
-            else if (state === "NY")
-                where.state = { in: ["NY", "New York"] };
-            else
-                where.state = state;
+            where.state = stateFilter(state);
+            // Tighten lat/lng to the state's bbox when we know it. This is the
+            // coord-sanity guard that drops geocoder misfires like the
+            // "San Juan Batista, CA" row that landed in Puerto Rico.
+            const box = STATE_BBOX[state];
+            if (box) {
+                const [s, w, n, e] = box;
+                where.latitude = { gte: Math.max(latFilter.gte, s), lte: Math.min(latFilter.lte, n) };
+                where.longitude = { gte: Math.max(lngFilter.gte, w), lte: Math.min(lngFilter.lte, e) };
+            }
         }
         const attractions = await prisma.attraction.findMany({
             where,
@@ -159,30 +132,7 @@ export async function attractionsRoutes(app) {
         const skip = (page - 1) * limit;
         const where = {};
         if (state) {
-            if (state === "ME") {
-                where.state = { in: ["ME", "Maine"] };
-            }
-            else if (state === "CA") {
-                where.state = { in: ["CA", "California"] };
-            }
-            else if (state === "TX") {
-                where.state = { in: ["TX", "Texas"] };
-            }
-            else if (state === "MA") {
-                where.state = { in: ["MA", "Massachusetts"] };
-            }
-            else if (state === "MO") {
-                where.state = { in: ["MO", "Missouri"] };
-            }
-            else if (state === "MD") {
-                where.state = { in: ["MD", "Maryland"] };
-            }
-            else if (state === "NY") {
-                where.state = { in: ["NY", "New York"] };
-            }
-            else {
-                where.state = state;
-            }
+            where.state = stateFilter(state);
         }
         if (city?.trim())
             where.city = { contains: city.trim(), mode: "insensitive" };

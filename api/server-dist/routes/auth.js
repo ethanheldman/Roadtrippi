@@ -11,7 +11,10 @@ const loginBody = z.object({
     password: z.string(),
 });
 export async function authRoutes(app) {
-    app.post("/register", async (request, reply) => {
+    // T2.5: throttle unauthenticated write endpoints to limit brute-force / spam.
+    // 10 requests/min per IP is generous for real users and painful for scripts.
+    const authLimit = { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } };
+    app.post("/register", authLimit, async (request, reply) => {
         const body = registerBody.safeParse(request.body);
         if (!body.success) {
             return reply.status(400).send({ error: body.error.flatten() });
@@ -41,7 +44,7 @@ export async function authRoutes(app) {
         const token = app.jwt.sign({ sub: user.id }, { expiresIn: "7d" });
         return reply.send({ user, token });
     });
-    app.post("/login", async (request, reply) => {
+    app.post("/login", authLimit, async (request, reply) => {
         try {
             const body = loginBody.safeParse(request.body);
             if (!body.success) {

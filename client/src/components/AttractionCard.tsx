@@ -22,11 +22,6 @@ export function AttractionCard({ a }: AttractionCardProps) {
             <AttractionImage
               imageUrl={a.imageUrl}
               className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-              placeholder={
-                <div className="w-full h-full flex items-center justify-center min-h-0 bg-lbx-border/80 text-lbx-muted/50">
-                  <span className="text-7xl sm:text-8xl md:text-9xl leading-none select-none" aria-hidden>🗿</span>
-                </div>
-              }
             />
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-3 py-2.5 flex items-center justify-between">
               {showRating && (

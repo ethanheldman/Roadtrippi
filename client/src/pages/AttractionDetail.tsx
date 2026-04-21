@@ -20,6 +20,10 @@ export function AttractionDetail() {
   const [review, setReview] = useState("");
   const [visitDate, setVisitDate] = useState(new Date().toISOString().slice(0, 10));
   const [likeLoadingId, setLikeLoadingId] = useState<string | null>(null);
+  // T3.4: show N reviews at a time, with "Show more" buttons for each section.
+  const REVIEWS_PAGE = 5;
+  const [popularVisible, setPopularVisible] = useState(REVIEWS_PAGE);
+  const [recentVisible, setRecentVisible] = useState(REVIEWS_PAGE);
 
   const updateCheckInLike = (checkInId: string, liked: boolean, likeCount: number) => {
     setAttraction((prev) => {
@@ -122,9 +126,6 @@ export function AttractionDetail() {
           <AttractionImage
             imageUrl={attraction.imageUrl}
             className="w-full h-full object-cover"
-            placeholder={
-              <span className="text-8xl sm:text-9xl leading-none select-none text-lbx-muted/30" aria-hidden>🗿</span>
-            }
           />
         </div>
         <div className="p-6 sm:p-8">
@@ -254,7 +255,7 @@ export function AttractionDetail() {
             </h2>
             {hasPopular ? (
               <ul className="space-y-4">
-                {popularList.map((c) => (
+                {popularList.slice(0, popularVisible).map((c) => (
                   <li
                     key={c.id}
                     className="bg-lbx-dark/50 rounded-lg border border-lbx-border p-4"
@@ -340,6 +341,17 @@ export function AttractionDetail() {
                     )}
                   </li>
                 ))}
+                {popularVisible < popularList.length && (
+                  <li className="pt-2 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setPopularVisible((v) => v + REVIEWS_PAGE)}
+                      className="text-sm text-lbx-muted hover:text-lbx-green transition-colors"
+                    >
+                      Show {Math.min(REVIEWS_PAGE, popularList.length - popularVisible)} more
+                    </button>
+                  </li>
+                )}
               </ul>
             ) : (
               <div className="rounded-lg border border-lbx-border bg-lbx-dark/30 py-6 px-6 text-center">
@@ -358,7 +370,7 @@ export function AttractionDetail() {
                 {/* Vertical line */}
                 <div className="absolute left-4 top-2 bottom-2 w-px bg-lbx-border" aria-hidden />
                 <ul className="space-y-0">
-                  {recentList.map((c, idx) => (
+                  {recentList.slice(0, recentVisible).map((c, idx) => (
                     <li key={c.id} className="relative flex gap-4 pb-6 last:pb-0">
                       <div className="relative z-10 flex-shrink-0 w-8 h-8 rounded-full bg-lbx-green/20 border-2 border-lbx-green flex items-center justify-center text-lbx-green text-xs font-bold">
                         {recentList.length - idx}
@@ -430,6 +442,17 @@ export function AttractionDetail() {
                     </li>
                   ))}
                 </ul>
+                {recentVisible < recentList.length && (
+                  <div className="mt-2 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setRecentVisible((v) => v + REVIEWS_PAGE)}
+                      className="text-sm text-lbx-muted hover:text-lbx-green transition-colors"
+                    >
+                      Show {Math.min(REVIEWS_PAGE, recentList.length - recentVisible)} more
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="rounded-lg border border-lbx-border bg-lbx-dark/30 py-6 px-6 text-center">

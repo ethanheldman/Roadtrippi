@@ -258,6 +258,20 @@ export const users = {
     if (params?.limit) q.set("limit", String(params.limit));
     return api<{ items: InboxItem[] }>(`/api/users/me/inbox${q.toString() ? `?${q}` : ""}`);
   },
+  /** Earned badges computed from a user's check-ins (see server/src/lib/badges.ts). */
+  badges: (id: string) =>
+    api<{
+      items: { slug: string; title: string; description: string; emoji: string }[];
+      stats: {
+        totalCheckIns: number;
+        distinctStates: number;
+        distinctCategories: number;
+        fiveStarCheckIns: number;
+        reviewedCheckIns: number;
+        maxCheckInsInDay: number;
+        earliestVisitYearsAgo: number | null;
+      };
+    }>(`/api/users/${id}/badges`),
 };
 
 export type ListSummary = {

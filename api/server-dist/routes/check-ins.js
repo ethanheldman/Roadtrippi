@@ -132,8 +132,11 @@ export async function checkInsRoutes(app) {
         }));
         return reply.send({ items });
     });
-    /** Add comment on a check-in */
-    app.post("/:id/comments", { preHandler: auth }, async (request, reply) => {
+    /** Add comment on a check-in — rate-limited to deter spam */
+    app.post("/:id/comments", {
+        preHandler: auth,
+        config: { rateLimit: { max: 20, timeWindow: "1 minute" } },
+    }, async (request, reply) => {
         const { userId } = await requireAuth(request, reply);
         const { id: checkInId } = request.params;
         const body = z.object({ text: z.string().min(1).max(2000) }).safeParse(request.body);

@@ -261,7 +261,6 @@ export function Home() {
                       <AttractionImage
                         imageUrl={c.attraction.imageUrl}
                         className="w-full h-full object-cover"
-                        placeholder={<div className="w-full h-full flex items-center justify-center text-3xl text-lbx-muted/50">🗿</div>}
                       />
                     </div>
                     <div className="p-2 space-y-1.5 min-w-0">
@@ -329,7 +328,6 @@ export function Home() {
                   <AttractionImage
                     imageUrl={reviewDetailCheckIn.attraction.imageUrl}
                     className="w-full rounded-lg object-cover poster-aspect"
-                    placeholder={<div className="w-full poster-aspect rounded-lg bg-lbx-border flex items-center justify-center text-4xl text-lbx-muted/50">🗿</div>}
                   />
                 </div>
                 <div className="min-w-0 flex-1">

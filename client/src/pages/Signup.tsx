@@ -8,15 +8,31 @@ export function Signup() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    const trimmedUsername = username.trim();
+    // Quick client-side checks — the server enforces the same rules too.
+    if (trimmedUsername.length < 2) {
+      setError("Username must be at least 2 characters.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Passwords don't match.");
+      return;
+    }
     setLoading(true);
     try {
-      await register(username, email, password);
+      await register(trimmedUsername, email, password);
       navigate("/");
     } catch (e) {
       setError((e as Error).message);
@@ -59,11 +75,21 @@ export function Signup() {
           />
         </div>
         <div>
-          <label htmlFor="signup-password" className="block text-sm font-medium text-lbx-muted mb-1">Password (min 8 characters)</label>
+          <div className="flex items-center justify-between mb-1">
+            <label htmlFor="signup-password" className="block text-sm font-medium text-lbx-muted">Password (min 8 characters)</label>
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              className="text-xs text-lbx-muted hover:text-lbx-green transition-colors"
+              aria-pressed={showPassword}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
           <input
             id="signup-password"
             name="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -71,6 +97,27 @@ export function Signup() {
             autoComplete="new-password"
             className="w-full px-4 py-2.5 bg-lbx-card border border-lbx-border rounded-md text-lbx-white placeholder-lbx-muted focus:border-lbx-green focus:ring-1 focus:ring-lbx-green focus:outline-none text-sm"
           />
+        </div>
+        <div>
+          <label htmlFor="signup-confirm" className="block text-sm font-medium text-lbx-muted mb-1">Confirm password</label>
+          <input
+            id="signup-confirm"
+            name="confirm"
+            type={showPassword ? "text" : "password"}
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            required
+            minLength={8}
+            autoComplete="new-password"
+            className={`w-full px-4 py-2.5 bg-lbx-card border rounded-md text-lbx-white placeholder-lbx-muted focus:ring-1 focus:outline-none text-sm transition-colors ${
+              confirm && password !== confirm
+                ? "border-red-500/60 focus:border-red-500 focus:ring-red-500/50"
+                : "border-lbx-border focus:border-lbx-green focus:ring-lbx-green"
+            }`}
+          />
+          {confirm && password !== confirm && (
+            <p className="mt-1 text-xs text-red-400">Passwords don't match</p>
+          )}
         </div>
         {error && <p className="text-lbx-red text-sm">{error}</p>}
         <button

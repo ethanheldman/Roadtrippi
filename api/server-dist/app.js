@@ -5,6 +5,7 @@ import cors from "@fastify/cors";
 import fjwt from "@fastify/jwt";
 import multipart from "@fastify/multipart";
 import fastifyStatic from "@fastify/static";
+import rateLimit from "@fastify/rate-limit";
 import { authRoutes } from "./routes/auth.js";
 import { attractionsRoutes } from "./routes/attractions.js";
 import { usersRoutes } from "./routes/users.js";
@@ -26,6 +27,12 @@ export async function createApp() {
     const app = Fastify({ logger: true });
     await app.register(cors, { origin: true });
     await app.register(fastifyStatic, { root: uploadsDir, prefix: "/api/uploads/" });
+    // T2.5: register the global rate-limit plugin but DON'T apply it by default.
+    // Individual routes opt in via config.rateLimit. This keeps read-heavy
+    // endpoints (listings, map data) untouched while throttling auth + writes.
+    // Note: on serverless (Vercel), each cold instance has its own in-memory
+    // counter, so this is best-effort defense-in-depth, not a hard cap.
+    await app.register(rateLimit, { global: false });
     // B10: refuse to boot in production with the dev JWT secret fallback.
     // In dev the fallback is fine; in Vercel/prod this would silently sign tokens
     // with a publicly-guessable key, so require an explicit env var instead.
