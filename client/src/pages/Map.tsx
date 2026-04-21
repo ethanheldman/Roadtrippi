@@ -1,13 +1,18 @@
 import { useEffect, useState, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import type { Marker as LeafletMarker } from "leaflet";
+import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
+import "leaflet.markercluster";
 import { attractions, checkIns, type MapAttraction } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { useLocationCoords } from "../context/LocationContext";
 import { AttractionImage } from "../components/AttractionImage";
 import { SaveToWantToSee } from "../components/SaveToWantToSee";
+import { STATE_BOUNDS, US_BOUNDS } from "../constants/stateBounds";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
 const STATES = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
@@ -21,7 +26,7 @@ const MARKER_ICON_URL = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon
 const MARKER_ICON_2X_URL = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png";
 const MARKER_SHADOW_URL = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png";
 
-// Fix default marker icon in bundler (Vite) context — blue pin
+// Default blue pin
 const icon = L.icon({
   iconUrl: MARKER_ICON_URL,
   iconRetinaUrl: MARKER_ICON_2X_URL,
@@ -32,8 +37,7 @@ const icon = L.icon({
   shadowSize: [41, 41],
 });
 
-// Green pin — same icon + shadow as blue marker, tinted green (identical shape/size/anchor)
-// Shadow anchor (4,62) vs icon anchor (12,41) → shadow offset (8,-21) from icon top-left
+// Visited green pin
 const visitedIcon = L.divIcon({
   className: "visited-marker",
   html: `<div class="visited-marker-wrapper" style="width:25px;height:41px;position:relative;overflow:visible;">
@@ -45,31 +49,120 @@ const visitedIcon = L.divIcon({
   popupAnchor: [1, -34],
 });
 
-function FitBounds({ items, enabled }: { items: MapAttraction[]; enabled: boolean }) {
+type PopupState = {
+  attractionId: string;
+  /** Container DIV we rendered into Leaflet's popup DOM — a React portal target. */
+  container: HTMLDivElement;
+};
+
+/**
+ * Clustered marker layer. Adds one L.markerClusterGroup to the map, syncs it
+ * with the items prop, and renders each popup's React content via a portal
+ * so it keeps all client-side routing (Link) and auth context intact.
+ *
+ * This replaces the "one <Marker> per pin" approach which rendered 1548 DOM
+ * nodes for California and dragged the page hard.
+ */
+function ClusteredMarkers({
+  items,
+  visitedIds,
+  user,
+  onPopupOpen,
+  onPopupClose,
+  markerRefs,
+}: {
+  items: MapAttraction[];
+  visitedIds: Set<string>;
+  user: unknown;
+  onPopupOpen: (state: PopupState) => void;
+  onPopupClose: () => void;
+  markerRefs: React.MutableRefObject<Record<string, L.Marker | null>>;
+}) {
   const map = useMap();
+  // We keep a single cluster group for the lifetime of the map.
+  const clusterRef = useRef<L.MarkerClusterGroup | null>(null);
+
   useEffect(() => {
-    if (!enabled || items.length === 0) return;
-    if (items.length === 1) {
-      map.setView([items[0].latitude, items[0].longitude], 12);
-      return;
-    }
-    const bounds = L.latLngBounds(items.map((a) => [a.latitude, a.longitude]));
-    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
-  }, [map, items, enabled]);
+    const group = L.markerClusterGroup({
+      chunkedLoading: true,
+      showCoverageOnHover: false,
+      spiderfyOnMaxZoom: true,
+      maxClusterRadius: 60,
+    });
+    map.addLayer(group);
+    clusterRef.current = group;
+    return () => {
+      map.removeLayer(group);
+      clusterRef.current = null;
+    };
+  }, [map]);
+
+  // Re-populate the cluster group whenever the item set changes.
+  useEffect(() => {
+    const group = clusterRef.current;
+    if (!group) return;
+    group.clearLayers();
+    markerRefs.current = {};
+
+    const markers: L.Marker[] = items.map((a) => {
+      const m = L.marker([a.latitude, a.longitude], {
+        icon: visitedIds.has(a.id) ? visitedIcon : icon,
+      });
+      markerRefs.current[a.id] = m;
+
+      // Empty container Leaflet will mount into a popup; React will portal
+      // into it when the popup opens. We attach handlers via L for open/close
+      // so we only render React content on demand (not for all N markers).
+      m.on("popupopen", () => {
+        const container = document.createElement("div");
+        container.className = "rt-popup-root";
+        m.setPopupContent(container);
+        onPopupOpen({ attractionId: a.id, container });
+      });
+      m.on("popupclose", () => {
+        onPopupClose();
+      });
+      // Bind a placeholder popup so click actually opens one; real content is
+      // injected in popupopen above.
+      m.bindPopup("", { minWidth: 200 });
+
+      return m;
+    });
+    group.addLayers(markers);
+
+    return () => {
+      group.clearLayers();
+      markerRefs.current = {};
+    };
+  // `user` changing alone doesn't need to rebuild the group, but visitedIds does.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, visitedIds]);
+
+  // Suppress unused `user` param linting; it's part of the API for callers.
+  void user;
   return null;
 }
 
-/** When userCoords is set, fly the map to that position (geolocation). */
+/** Fit the visible map to the given bounds when they change. */
+function FitBoundsTo({ bounds }: { bounds: [number, number, number, number] | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!bounds) return;
+    const [s, w, n, e] = bounds;
+    map.fitBounds([[s, w], [n, e]] as L.LatLngBoundsExpression, { padding: [40, 40], maxZoom: 10 });
+  }, [map, bounds]);
+  return null;
+}
+
 function FlyToLocation({ userCoords }: { userCoords: { lat: number; lng: number } | null }) {
   const map = useMap();
   useEffect(() => {
     if (!userCoords) return;
-    map.flyTo([userCoords.lat, userCoords.lng], 12, { duration: 0.8 });
+    map.flyTo([userCoords.lat, userCoords.lng], 10, { duration: 0.8 });
   }, [map, userCoords]);
   return null;
 }
 
-/** When focusAttractionId is in URL and in items, fly to it and open its popup. */
 function FlyToAttraction({
   focusAttractionId,
   items,
@@ -77,10 +170,9 @@ function FlyToAttraction({
 }: {
   focusAttractionId: string | null;
   items: MapAttraction[];
-  markerRefs: React.MutableRefObject<Record<string, LeafletMarker | null>>;
+  markerRefs: React.MutableRefObject<Record<string, L.Marker | null>>;
 }) {
   const map = useMap();
-  const hasFocusedRef = useRef(false);
   useEffect(() => {
     if (!focusAttractionId || items.length === 0) return;
     const item = items.find((a) => a.id === focusAttractionId);
@@ -88,16 +180,10 @@ function FlyToAttraction({
     map.flyTo([item.latitude, item.longitude], 14, { duration: 0.6 });
     const t = setTimeout(() => {
       const marker = markerRefs.current[focusAttractionId];
-      if (marker && typeof (marker as LeafletMarker & { openPopup?: () => void }).openPopup === "function") {
-        (marker as LeafletMarker).openPopup();
-      }
-      hasFocusedRef.current = true;
+      if (marker) marker.openPopup();
     }, 500);
     return () => clearTimeout(t);
   }, [map, focusAttractionId, items, markerRefs]);
-  useEffect(() => {
-    hasFocusedRef.current = false;
-  }, [focusAttractionId]);
   return null;
 }
 
@@ -111,11 +197,16 @@ export function Map() {
   const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [locating, setLocating] = useState(false);
   const [showOnlyVisited, setShowOnlyVisited] = useState(false);
-  const markerRefs = useRef<Record<string, LeafletMarker | null>>({});
+  const [popup, setPopup] = useState<PopupState | null>(null);
+  const markerRefs = useRef<Record<string, L.Marker | null>>({});
+  const {
+    coords: userCoords,
+    error: locationError,
+    status: locationStatus,
+    request: requestCoords,
+  } = useLocationCoords();
+  const locating = locationStatus === "requesting";
 
   useEffect(() => {
     if (stateFromUrl && STATES.includes(stateFromUrl)) setState(stateFromUrl);
@@ -155,34 +246,17 @@ export function Map() {
       .catch(() => setVisitedIds(new Set()));
   }, [user]);
 
-  const filteredItems = useMemo(() => {
-    return showOnlyVisited ? items.filter((a) => visitedIds.has(a.id)) : items;
-  }, [items, visitedIds, showOnlyVisited]);
+  const filteredItems = useMemo(
+    () => (showOnlyVisited ? items.filter((a) => visitedIds.has(a.id)) : items),
+    [items, visitedIds, showOnlyVisited]
+  );
 
-  const showMap = state && !loading && !error;
-  const showEmptyState = state && !loading && !error && items.length === 0;
-  const showChooseState = !state;
+  // T1.4: always render the map with a sensible default. No state → show continental US.
+  //        Picking a state → fly to that state's bounding box immediately (not waiting for markers).
+  const initialBounds = state && STATE_BOUNDS[state] ? STATE_BOUNDS[state] : US_BOUNDS;
+  const fitBounds = state && STATE_BOUNDS[state] ? STATE_BOUNDS[state] : null;
 
-  const handleLocate = () => {
-    setLocationError(null);
-    setLocating(true);
-    if (!navigator.geolocation) {
-      setLocationError("Location not supported");
-      setLocating(false);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLocating(false);
-      },
-      () => {
-        setLocationError("Location denied or unavailable");
-        setLocating(false);
-      },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
-    );
-  };
+  const popupAttraction = popup ? items.find((a) => a.id === popup.attractionId) ?? null : null;
 
   return (
     <div className="space-y-4">
@@ -199,7 +273,7 @@ export function Map() {
               className="pl-2 pr-8 py-2 rounded-md border border-lbx-border bg-lbx-card text-lbx-white focus:border-lbx-green focus:outline-none focus:ring-1 focus:ring-lbx-green text-sm min-w-[88px] appearance-none cursor-pointer"
               aria-label="Choose state for map"
             >
-              <option value="">Choose state</option>
+              <option value="">All states</option>
               {STATES.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
@@ -207,7 +281,7 @@ export function Map() {
           </div>
           <button
             type="button"
-            onClick={handleLocate}
+            onClick={requestCoords}
             disabled={locating}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-lbx-border bg-lbx-card text-lbx-text hover:border-lbx-green hover:text-lbx-white transition-colors disabled:opacity-50 text-sm font-medium"
             title="Center map on my location"
@@ -234,22 +308,16 @@ export function Map() {
                 setShowOnlyVisited((prev) => !prev);
               }}
               className={`text-sm flex items-center gap-1.5 transition-colors cursor-pointer ${
-                showOnlyVisited
-                  ? "text-lbx-white"
-                  : "text-lbx-muted hover:text-lbx-white"
+                showOnlyVisited ? "text-lbx-white" : "text-lbx-muted hover:text-lbx-white"
               }`}
             >
               <span
                 className={`inline-flex items-center justify-center w-3 h-3 rounded-full border shadow-sm transition-colors ${
-                  showOnlyVisited
-                    ? "bg-lbx-green border-white/80"
-                    : "bg-transparent border-lbx-muted"
+                  showOnlyVisited ? "bg-lbx-green border-white/80" : "bg-transparent border-lbx-muted"
                 }`}
                 aria-hidden
               >
-                {showOnlyVisited && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                )}
+                {showOnlyVisited && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
               </span>
               Visited
             </button>
@@ -259,88 +327,72 @@ export function Map() {
               {items.length} attraction{items.length !== 1 ? "s" : ""} on the map
             </p>
           )}
+          {!state && (
+            <p className="text-lbx-muted text-sm">
+              Choose a state or use your location
+            </p>
+          )}
         </div>
       </div>
       <div className="rounded-xl overflow-hidden border border-lbx-border bg-lbx-card h-[calc(100vh-12rem)] min-h-[420px]">
-        {showChooseState && (
-          <div className="h-full flex items-center justify-center text-lbx-muted bg-lbx-dark/40">
-            <p>Choose a state above to view roadside attractions on the map.</p>
-          </div>
-        )}
-        {state && loading && (
-          <div className="h-full flex items-center justify-center text-lbx-muted">
-            Loading map…
-          </div>
-        )}
-        {state && error && (
+        {error ? (
           <div className="h-full flex items-center justify-center p-6 text-lbx-muted text-center">
             {error}
           </div>
+        ) : (
+          <MapContainer
+            bounds={[[initialBounds[0], initialBounds[1]], [initialBounds[2], initialBounds[3]]]}
+            className="h-full w-full"
+            scrollWheelZoom
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <FitBoundsTo bounds={fitBounds} />
+            <FlyToLocation userCoords={userCoords} />
+            <FlyToAttraction
+              focusAttractionId={focusAttractionId}
+              items={filteredItems}
+              markerRefs={markerRefs}
+            />
+            {!loading && filteredItems.length > 0 && (
+              <ClusteredMarkers
+                items={filteredItems}
+                visitedIds={visitedIds}
+                user={user}
+                onPopupOpen={setPopup}
+                onPopupClose={() => setPopup(null)}
+                markerRefs={markerRefs}
+              />
+            )}
+          </MapContainer>
         )}
-        {showEmptyState && (
-          <div className="h-full flex items-center justify-center text-lbx-muted text-center p-6">
-            <p>No attractions with coordinates in this state yet.</p>
-            <p className="text-sm mt-1">Geocoding may not have been run for this state.</p>
-          </div>
-        )}
-        {showMap && items.length > 0 && (
-        <MapContainer
-          center={[39.5, -98.35]}
-          zoom={4}
-          className="h-full w-full"
-          scrollWheelZoom
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <FitBounds
-            items={filteredItems}
-            enabled={filteredItems.length > 0 && !focusAttractionId}
-          />
-          <FlyToLocation userCoords={userCoords} />
-          <FlyToAttraction
-            focusAttractionId={focusAttractionId}
-            items={filteredItems}
-            markerRefs={markerRefs}
-          />
-          {filteredItems.map((a) => (
-            <Marker
-              key={a.id}
-              ref={(r) => {
-                if (r) (markerRefs.current[a.id] = r as unknown as LeafletMarker);
-              }}
-              position={[a.latitude, a.longitude]}
-              icon={visitedIds.has(a.id) ? visitedIcon : icon}
-            >
-              <Popup>
-                <div className="min-w-[180px]">
-                  <AttractionImage
-                    imageUrl={a.imageUrl}
-                    className="w-full h-24 object-cover rounded mb-2"
-                  />
-                  <p className="font-semibold text-gray-900">{a.name}</p>
-                  {(a.city || a.state) && (
-                    <p className="text-sm text-gray-600">
-                      {[a.city, a.state].filter(Boolean).join(", ")}
-                    </p>
-                  )}
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    {user && (
-                      <SaveToWantToSee attractionId={a.id} className="!px-2 !py-1 !text-xs" />
-                    )}
-                    <Link
-                      to={`/attraction/${a.id}`}
-                      className="text-sm text-green-600 hover:underline"
-                    >
-                      View details →
-                    </Link>
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
+        {popup && popupAttraction && createPortal(
+          <div className="min-w-[200px]">
+            <AttractionImage
+              imageUrl={popupAttraction.imageUrl}
+              className="w-full h-24 object-cover rounded mb-2"
+            />
+            <p className="font-semibold text-gray-900">{popupAttraction.name}</p>
+            {(popupAttraction.city || popupAttraction.state) && (
+              <p className="text-sm text-gray-600">
+                {[popupAttraction.city, popupAttraction.state].filter(Boolean).join(", ")}
+              </p>
+            )}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {user && (
+                <SaveToWantToSee attractionId={popupAttraction.id} className="!px-2 !py-1 !text-xs" />
+              )}
+              <Link
+                to={`/attraction/${popupAttraction.id}`}
+                className="text-sm text-green-600 hover:underline"
+              >
+                View details →
+              </Link>
+            </div>
+          </div>,
+          popup.container
         )}
       </div>
     </div>

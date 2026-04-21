@@ -129,7 +129,7 @@ export function MyLists() {
                     <p className="text-sm text-lbx-muted mt-0.5 line-clamp-1">{list.description}</p>
                   )}
                 </div>
-                <span className="text-sm text-lbx-muted tabular-nums">{list.itemCount} places</span>
+                <span className="text-sm text-lbx-muted tabular-nums">{list.itemCount} {list.itemCount === 1 ? "place" : "places"}</span>
               </Link>
             </li>
           ))}

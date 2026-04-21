@@ -4,7 +4,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { put } from "@vercel/blob";
 import { prisma } from "../lib/prisma.js";
-import { requireAuth } from "../lib/auth.js";
+import { requireAuth, getOptionalUserId } from "../lib/auth.js";
 
 // Use same base as app.ts so static files are served from where we write (important for Vercel /tmp)
 const isVercel = typeof process.env.VERCEL !== "undefined";
@@ -56,9 +56,13 @@ export async function usersRoutes(app: FastifyInstance) {
       const limit = Math.min(50, Math.max(1, parseInt(request.query.limit ?? "20", 10)));
       const search = request.query.search?.trim();
       const skip = (page - 1) * limit;
-      const where = search
+      // B5: exclude the requesting user from their own "Discover people" list.
+      // /api/users has no required auth, so we use the optional resolver.
+      const meId = await getOptionalUserId(request as FastifyRequest);
+      const baseWhere = search
         ? { username: { contains: search, mode: "insensitive" as const } }
         : {};
+      const where = meId ? { ...baseWhere, NOT: { id: meId } } : baseWhere;
       const [items, total] = await Promise.all([
         prisma.user.findMany({
           where,

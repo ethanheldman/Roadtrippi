@@ -26,9 +26,14 @@ export async function createApp() {
     const app = Fastify({ logger: true });
     await app.register(cors, { origin: true });
     await app.register(fastifyStatic, { root: uploadsDir, prefix: "/api/uploads/" });
-    await app.register(fjwt, {
-        secret: process.env.JWT_SECRET ?? "dev-secret-min-32-characters-long",
-    });
+    // B10: refuse to boot in production with the dev JWT secret fallback.
+    // In dev the fallback is fine; in Vercel/prod this would silently sign tokens
+    // with a publicly-guessable key, so require an explicit env var instead.
+    const jwtSecret = process.env.JWT_SECRET ?? "dev-secret-min-32-characters-long";
+    if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
+        throw new Error("JWT_SECRET env var is required in production");
+    }
+    await app.register(fjwt, { secret: jwtSecret });
     app.decorate("authenticate", async function (request, reply) {
         try {
             await request.jwtVerify();

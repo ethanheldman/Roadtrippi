@@ -3,7 +3,7 @@ import fs from "fs";
 import { z } from "zod";
 import { put } from "@vercel/blob";
 import { prisma } from "../lib/prisma.js";
-import { requireAuth } from "../lib/auth.js";
+import { requireAuth, getOptionalUserId } from "../lib/auth.js";
 // Use same base as app.ts so static files are served from where we write (important for Vercel /tmp)
 const isVercel = typeof process.env.VERCEL !== "undefined";
 const AVATAR_DIR = isVercel
@@ -18,6 +18,7 @@ catch {
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const EXT_BY_MIME = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const updateMeBody = z.object({
+    username: z.string().min(2).max(50).optional(),
     // Allow full URLs or relative paths (e.g. /uploads/avatars/xxx.jpg) so saved profile keeps upload path
     avatarUrl: z
         .preprocess((v) => (v === "" ? null : v), z
@@ -45,9 +46,13 @@ export async function usersRoutes(app) {
         const limit = Math.min(50, Math.max(1, parseInt(request.query.limit ?? "20", 10)));
         const search = request.query.search?.trim();
         const skip = (page - 1) * limit;
-        const where = search
-            ? { username: { contains: search } }
+        // B5: exclude the requesting user from their own "Discover people" list.
+        // /api/users has no required auth, so we use the optional resolver.
+        const meId = await getOptionalUserId(request);
+        const baseWhere = search
+            ? { username: { contains: search, mode: "insensitive" } }
             : {};
+        const where = meId ? { ...baseWhere, NOT: { id: meId } } : baseWhere;
         const [items, total] = await Promise.all([
             prisma.user.findMany({
                 where,
@@ -130,13 +135,25 @@ export async function usersRoutes(app) {
         });
         return reply.send({ avatarUrl });
     });
-    // --- Update my profile (avatar, bio, location) ---
+    // --- Update my profile (username, avatar, bio, location) ---
     app.patch("/me", { preHandler: auth }, async (request, reply) => {
         const { userId } = await requireAuth(request, reply);
         const body = updateMeBody.safeParse(request.body);
         if (!body.success)
             return reply.status(400).send({ error: body.error.flatten() });
         const data = {};
+        if (body.data.username !== undefined) {
+            const newUsername = body.data.username.trim();
+            const existing = await prisma.user.findFirst({
+                where: {
+                    username: { equals: newUsername, mode: "insensitive" },
+                    id: { not: userId },
+                },
+            });
+            if (existing)
+                return reply.status(409).send({ error: "Username already in use" });
+            data.username = newUsername;
+        }
         if (body.data.avatarUrl !== undefined)
             data.avatarUrl = body.data.avatarUrl;
         if (body.data.bio !== undefined)
@@ -451,6 +468,36 @@ export async function usersRoutes(app) {
         });
         const items = rows.map((r) => r.follower);
         return reply.send({ items });
+    });
+    /** Admin only (eheld): change another user's username */
+    const adminUsernameBody = z.object({
+        data: z.object({ username: z.string().min(2).max(50) }),
+    });
+    app.patch("/:id/username", { preHandler: auth }, async (request, reply) => {
+        const { userId } = await requireAuth(request, reply);
+        const me = await prisma.user.findUnique({ where: { id: userId }, select: { username: true } });
+        if (!me || me.username.toLowerCase() !== "eheld") {
+            return reply.status(403).send({ error: "Only the admin can change other users' usernames." });
+        }
+        const body = adminUsernameBody.safeParse(request.body);
+        if (!body.success)
+            return reply.status(400).send({ error: body.error.flatten() });
+        const targetId = request.params.id;
+        const newUsername = body.data.data.username.trim();
+        const existing = await prisma.user.findFirst({
+            where: {
+                username: { equals: newUsername, mode: "insensitive" },
+                id: { not: targetId },
+            },
+        });
+        if (existing)
+            return reply.status(409).send({ error: "Username already in use" });
+        const updated = await prisma.user.update({
+            where: { id: targetId },
+            data: { username: newUsername },
+            select: { id: true, username: true },
+        });
+        return reply.send(updated);
     });
     /** Public: list of this user's public lists */
     app.get("/:id/lists", async (request, reply) => {

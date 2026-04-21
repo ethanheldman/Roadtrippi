@@ -68,27 +68,71 @@ type WhereAttraction = {
 };
 
 export async function attractionsRoutes(app: FastifyInstance) {
-  /** Map markers: ?state=XX required — returns only attractions with coordinates in that state */
+  /**
+   * Map markers.
+   * Query:
+   *   - state=XX (required unless bbox given): returns attractions in that state with coords.
+   *   - bbox=minLng,minLat,maxLng,maxLat (optional): restricts to the given geographic box.
+   *     When present without state, returns attractions anywhere in the box (for nationwide maps
+   *     that zoom-and-fetch).
+   * Safety: filters out obvious geocoding misfires by requiring lat/lng inside a wide US bounding
+   * box (15–72°N, -180 to -65°W) — this quietly hides rows like the one that landed in Puerto Rico.
+   */
   app.get("/map", async (request: FastifyRequest, reply: FastifyReply) => {
-    const stateParam = (request.query as { state?: string })?.state;
-    const state = normalizeStateCode(stateParam);
-    if (!state) {
+    const q = request.query as { state?: string; bbox?: string };
+    const state = normalizeStateCode(q.state);
+
+    // Parse bbox if provided: "minLng,minLat,maxLng,maxLat"
+    let bbox: { minLng: number; minLat: number; maxLng: number; maxLat: number } | null = null;
+    if (q.bbox) {
+      const parts = q.bbox.split(",").map((s) => parseFloat(s));
+      if (parts.length === 4 && parts.every((n) => Number.isFinite(n))) {
+        bbox = { minLng: parts[0]!, minLat: parts[1]!, maxLng: parts[2]!, maxLat: parts[3]! };
+      }
+    }
+
+    if (!state && !bbox) {
       return reply.send({ items: [] });
     }
-    const where: WhereAttraction & { latitude: { not: null }; longitude: { not: null } } = {
-      latitude: { not: null },
-      longitude: { not: null },
+
+    // Wide continental-US + AK + HI bounding box to guard against geocoding misfires.
+    const SAFE_LAT_MIN = 15;
+    const SAFE_LAT_MAX = 72;
+    const SAFE_LNG_MIN = -180;
+    const SAFE_LNG_MAX = -65;
+
+    const latFilter = {
+      gte: bbox ? Math.max(bbox.minLat, SAFE_LAT_MIN) : SAFE_LAT_MIN,
+      lte: bbox ? Math.min(bbox.maxLat, SAFE_LAT_MAX) : SAFE_LAT_MAX,
     };
-    if (state === "ME") (where as { state?: string | { in: string[] } }).state = { in: ["ME", "Maine"] };
-    else if (state === "CA") (where as { state?: string | { in: string[] } }).state = { in: ["CA", "California"] };
-    else if (state === "TX") (where as { state?: string | { in: string[] } }).state = { in: ["TX", "Texas"] };
-    else if (state === "MA") (where as { state?: string | { in: string[] } }).state = { in: ["MA", "Massachusetts"] };
-    else if (state === "MO") (where as { state?: string | { in: string[] } }).state = { in: ["MO", "Missouri"] };
-    else if (state === "MD") (where as { state?: string | { in: string[] } }).state = { in: ["MD", "Maryland"] };
-    else if (state === "NY") (where as { state?: string | { in: string[] } }).state = { in: ["NY", "New York"] };
-    else where.state = state;
+    const lngFilter = {
+      gte: bbox ? Math.max(bbox.minLng, SAFE_LNG_MIN) : SAFE_LNG_MIN,
+      lte: bbox ? Math.min(bbox.maxLng, SAFE_LNG_MAX) : SAFE_LNG_MAX,
+    };
+
+    const where: WhereAttraction & {
+      latitude: { gte: number; lte: number };
+      longitude: { gte: number; lte: number };
+    } = {
+      latitude: latFilter,
+      longitude: lngFilter,
+    };
+
+    if (state) {
+      // Mirror the state-code/full-name duality until the column is normalized.
+      if (state === "ME") (where as { state?: string | { in: string[] } }).state = { in: ["ME", "Maine"] };
+      else if (state === "CA") (where as { state?: string | { in: string[] } }).state = { in: ["CA", "California"] };
+      else if (state === "TX") (where as { state?: string | { in: string[] } }).state = { in: ["TX", "Texas"] };
+      else if (state === "MA") (where as { state?: string | { in: string[] } }).state = { in: ["MA", "Massachusetts"] };
+      else if (state === "MO") (where as { state?: string | { in: string[] } }).state = { in: ["MO", "Missouri"] };
+      else if (state === "MD") (where as { state?: string | { in: string[] } }).state = { in: ["MD", "Maryland"] };
+      else if (state === "NY") (where as { state?: string | { in: string[] } }).state = { in: ["NY", "New York"] };
+      else where.state = state;
+    }
+
     const attractions = await prisma.attraction.findMany({
       where,
+      take: 5000, // hard cap — we cluster on the client, but cap server payload size
       select: {
         id: true,
         name: true,
@@ -166,8 +210,11 @@ export async function attractionsRoutes(app: FastifyInstance) {
       if (!hasUserLocation) {
         return reply.status(400).send({ error: "lat and lng required when sortBy is distance" });
       }
+      // B13: previously also required imageUrl != null, which meant switching
+      // to "Closest to me" silently hid attractions without a hero image. Drop
+      // that filter so the result set matches other sorts.
       const withCoords = await prisma.attraction.findMany({
-        where: { ...where, latitude: { not: null }, longitude: { not: null }, imageUrl: { not: null } },
+        where: { ...where, latitude: { not: null }, longitude: { not: null } },
         select: { id: true, latitude: true, longitude: true },
       });
       const withDistance = withCoords

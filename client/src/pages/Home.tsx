@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AttractionCard } from "../components/AttractionCard";
 import { AttractionImage } from "../components/AttractionImage";
 import { CardGridSkeleton } from "../components/CardSkeleton";
 import { StarDisplay } from "../components/StarDisplay";
 import { useAuth } from "../context/AuthContext";
+import { useLocationCoords } from "../context/LocationContext";
 import { attractions, friends, checkIns, getAvatarSrc, type Attraction, type Category, type Paginated, type FeedCheckIn, type CommentItem } from "../api";
 import { SORT_OPTIONS } from "../constants/sortOptions";
 
@@ -55,9 +56,9 @@ export function Home() {
     return Number.isNaN(i) || i < 0 || i >= SORT_OPTIONS.length ? 0 : i;
   });
   const [page, setPage] = useState(() => Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1));
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [heroOpacity, setHeroOpacity] = useState(1);
+  // Shared geolocation — the provider caches across pages so Home and Map share a single prompt.
+  const { coords: userCoords, error: locationError, request: requestCoords, status: locationStatus } = useLocationCoords();
+  const heroRef = useRef<HTMLElement | null>(null);
 
   const sort = SORT_OPTIONS[sortIndex] ?? SORT_OPTIONS[0];
   const isDistanceSort = sort.value === "distance";
@@ -94,33 +95,45 @@ export function Home() {
     setSortIndex(Number.isNaN(sortI) || sortI < 0 || sortI >= SORT_OPTIONS.length ? 0 : sortI);
   }, [searchParams]);
 
-  // Fade hero out as user scrolls
+  // Fade hero out as user scrolls — ref-based, no React rerenders on every scroll event.
+  // Writes opacity directly to the DOM via rAF-throttled handler. Before this, setState fired
+  // on every scroll event and rerendered the whole 600+ line Home tree at 60 fps.
   useEffect(() => {
     const fadeDistance = Math.min(400, window.innerHeight * 0.5);
-    const onScroll = () => {
+    let raf = 0;
+    const apply = () => {
+      raf = 0;
       const opacity = Math.max(0, 1 - window.scrollY / fadeDistance);
-      setHeroOpacity(opacity);
+      const hero = heroRef.current;
+      if (hero) {
+        hero.style.opacity = String(opacity);
+        hero.style.pointerEvents = opacity === 0 ? "none" : "";
+        if (opacity === 0) hero.setAttribute("aria-hidden", "true");
+        else hero.removeAttribute("aria-hidden");
+      }
     };
-    onScroll();
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(apply);
+    };
+    apply();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, []);
 
-  // When "Closest to me" is selected, request geolocation once
+  // When "Closest to me" is selected, request shared geolocation once.
+  // B3: if permission is denied, auto-switch the sort dropdown off "distance" so UI matches URL.
   useEffect(() => {
     if (!isDistanceSort) return;
     if (userCoords != null) return;
-    setLocationError(null);
-    if (!navigator.geolocation) {
-      setLocationError("Location not supported");
-      return;
+    if (locationStatus === "idle") requestCoords();
+    if (locationStatus === "denied") {
+      // Drop distance sort (index 0) so dropdown label no longer lies about sort order.
+      setSortIndex(0);
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }) as void,
-      () => setLocationError("Location denied or unavailable"),
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
-    );
-  }, [isDistanceSort, userCoords]);
+  }, [isDistanceSort, userCoords, locationStatus, requestCoords]);
 
   useEffect(() => {
     if (!user) {
@@ -149,7 +162,12 @@ export function Home() {
   }, [reviewDetailCheckIn?.id]);
 
   useEffect(() => {
-    // When "Closest to me" is selected but we don't have location, fetch by name so state/city filters still work
+    // When "Closest to me" is selected but we don't have location yet, wait — don't issue a fallback
+    // name-sort query that will immediately be invalidated. If coords are permanently denied, the
+    // effect above flips sortIndex to 0 and this will refire with sortBy=name.
+    if (sort.value === "distance" && userCoords == null && locationStatus !== "denied") {
+      return;
+    }
     const useDistanceSort = sort.value === "distance" && userCoords != null;
     setLoading(true);
     attractions
@@ -168,18 +186,17 @@ export function Home() {
       .then(setData)
       .catch(() => setData({ items: [], total: 0, page: 1, limit: 24 }))
       .finally(() => setLoading(false));
-  }, [page, state, city, category, search, sortIndex, sort.value, sort.order, userCoords, locationError]);
+  }, [page, state, city, category, search, sort.value, sort.order, userCoords, locationStatus]);
 
   return (
     <div>
-      {/* Hero: full-bleed, fades out (opacity) as you scroll */}
+      {/* Hero: full-bleed, fades out (opacity) as you scroll — opacity applied imperatively via heroRef */}
       <section
-        className={`hero-full-bleed sticky top-0 z-0 relative min-h-[88vh] sm:min-h-[92vh] flex items-center justify-center bg-cover bg-center bg-[#161b22] transition-opacity duration-150 ${heroOpacity === 0 ? "pointer-events-none" : ""}`}
+        ref={heroRef}
+        className="hero-full-bleed sticky top-0 z-0 relative min-h-[88vh] sm:min-h-[92vh] flex items-center justify-center bg-cover bg-center bg-[#161b22] transition-opacity duration-150"
         style={{
           backgroundImage: `url(${HERO_IMAGE})`,
-          opacity: heroOpacity,
         }}
-        aria-hidden={heroOpacity === 0}
       >
         <div className="absolute inset-0 bg-black/65" aria-hidden />
         <div className="relative z-10 text-center px-4 sm:px-6 max-w-2xl mx-auto pointer-events-auto">
@@ -322,7 +339,7 @@ export function Home() {
                   >
                     {reviewDetailCheckIn.user.avatarUrl ? (
                       <img
-                        src={reviewDetailCheckIn.user.avatarUrl}
+                        src={getAvatarSrc(reviewDetailCheckIn.user.avatarUrl)}
                         alt=""
                         className="w-8 h-8 rounded-full object-cover bg-lbx-border"
                       />

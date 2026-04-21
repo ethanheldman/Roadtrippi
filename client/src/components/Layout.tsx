@@ -1,12 +1,58 @@
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useAuth } from "../context/AuthContext";
+
+/**
+ * Single source of truth for the attractions search input in the header.
+ * Shown on every page except Home (which has its own filter bar on the grid).
+ * On Home it stays hidden to avoid a duplicate "Search attractions…" input.
+ * On other pages, typing live-updates a local draft; submitting navigates to
+ * /?search=... so the result actually shows up in the Explore grid.
+ */
+function HeaderSearch() {
+  const loc = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const urlSearch = searchParams.get("search") ?? "";
+  const [draft, setDraft] = useState(urlSearch);
+
+  // Keep draft in sync with URL when navigating between pages.
+  useEffect(() => {
+    setDraft(urlSearch);
+  }, [urlSearch, loc.pathname]);
+
+  // Home has its own richer filter bar — don't double up.
+  const hideOnHome = loc.pathname === "/";
+  if (hideOnHome) return <div className="flex-1" aria-hidden />;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = draft.trim();
+    const params = new URLSearchParams();
+    if (q) params.set("search", q);
+    navigate(params.toString() ? `/?${params.toString()}` : "/");
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="flex-1 max-w-md hidden sm:block" role="search">
+      <label htmlFor="header-search" className="sr-only">Search attractions</label>
+      <input
+        id="header-search"
+        type="search"
+        placeholder="Search attractions..."
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        className="w-full px-3 py-1.5 rounded-md bg-lbx-dark border border-lbx-border text-sm text-lbx-white placeholder-lbx-muted focus:outline-none focus:border-lbx-green focus:ring-1 focus:ring-lbx-green/40 transition-colors"
+        aria-label="Search attractions"
+      />
+    </form>
+  );
+}
 
 export function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const loc = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const search = searchParams.get("search") ?? "";
 
   return (
     <div className="min-h-screen flex flex-col bg-lbx-dark">
@@ -20,38 +66,7 @@ export function Layout({ children }: { children: ReactNode }) {
             <span>Roadtrippi</span>
           </Link>
 
-          {/* Top search bar — Explore, Map, People, Saved, Activity, Profile so it doesn't disappear when switching tabs */}
-          {(loc.pathname === "/" || loc.pathname === "/map" || loc.pathname === "/people" || loc.pathname.startsWith("/lists") || loc.pathname.startsWith("/profile")) && (
-            <div className="flex-1 max-w-md hidden sm:block">
-              <label htmlFor="header-search" className="sr-only">Search attractions</label>
-              <input
-                id="header-search"
-                type="search"
-                placeholder="Search attractions..."
-                value={search}
-                onChange={(e) => {
-                  const next = new URLSearchParams(searchParams);
-                  const value = e.target.value;
-                  if (value.trim()) {
-                    next.set("search", value);
-                    next.delete("page");
-                  } else {
-                    next.delete("search");
-                    next.delete("page");
-                  }
-                  setSearchParams(next, { replace: false });
-                  // On Explore, scroll down to the in-page filters so the user sees the "other" search and results
-                  if (loc.pathname === "/") {
-                    requestAnimationFrame(() => {
-                      document.getElementById("all-attractions")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    });
-                  }
-                }}
-                className="w-full px-3 py-1.5 rounded-md bg-lbx-dark border border-lbx-border text-sm text-lbx-white placeholder-lbx-muted focus:outline-none focus:border-lbx-green focus:ring-1 focus:ring-lbx-green/40 transition-colors"
-                aria-label="Search attractions"
-              />
-            </div>
-          )}
+          <HeaderSearch />
 
           <nav className="flex items-center gap-4 sm:gap-6 text-sm font-medium shrink-0">
             <Link
@@ -158,7 +173,6 @@ export function Layout({ children }: { children: ReactNode }) {
               </Link>
               <Link to="/map" className="hover:text-lbx-green transition-colors">Map</Link>
               <Link to="/people" className="hover:text-lbx-green transition-colors">People</Link>
-              <Link to="/" className="hover:text-lbx-green transition-colors">About</Link>
             </nav>
           </div>
         </div>

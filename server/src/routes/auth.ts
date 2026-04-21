@@ -19,12 +19,17 @@ export async function authRoutes(app: FastifyInstance) {
     if (!body.success) {
       return reply.status(400).send({ error: body.error.flatten() });
     }
-    const { username, email, password } = body.data;
+    const { email, password } = body.data;
+    // B9: trim username on register the same way login does, so "  bob  " and "bob" can't diverge.
+    const username = body.data.username.trim();
+    if (username.length < 2) {
+      return reply.status(400).send({ error: "Username must be at least 2 characters" });
+    }
     const existing = await prisma.user.findFirst({
       where: {
         OR: [
           { email: { equals: email, mode: "insensitive" } },
-          { username: { equals: username.trim(), mode: "insensitive" } },
+          { username: { equals: username, mode: "insensitive" } },
         ],
       },
     });
