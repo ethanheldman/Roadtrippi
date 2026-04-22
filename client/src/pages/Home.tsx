@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AttractionCard } from "../components/AttractionCard";
 import { AttractionImage } from "../components/AttractionImage";
@@ -58,7 +58,6 @@ export function Home() {
   const [page, setPage] = useState(() => Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1));
   // Shared geolocation — the provider caches across pages so Home and Map share a single prompt.
   const { coords: userCoords, error: locationError, request: requestCoords, status: locationStatus } = useLocationCoords();
-  const heroRef = useRef<HTMLElement | null>(null);
 
   const sort = SORT_OPTIONS[sortIndex] ?? SORT_OPTIONS[0];
   const isDistanceSort = sort.value === "distance";
@@ -95,33 +94,9 @@ export function Home() {
     setSortIndex(Number.isNaN(sortI) || sortI < 0 || sortI >= SORT_OPTIONS.length ? 0 : sortI);
   }, [searchParams]);
 
-  // Fade hero out as user scrolls — ref-based, no React rerenders on every scroll event.
-  // Writes opacity directly to the DOM via rAF-throttled handler. Before this, setState fired
-  // on every scroll event and rerendered the whole 600+ line Home tree at 60 fps.
-  useEffect(() => {
-    const fadeDistance = Math.min(400, window.innerHeight * 0.5);
-    let raf = 0;
-    const apply = () => {
-      raf = 0;
-      const opacity = Math.max(0, 1 - window.scrollY / fadeDistance);
-      const hero = heroRef.current;
-      if (hero) {
-        hero.style.opacity = String(opacity);
-        hero.style.pointerEvents = opacity === 0 ? "none" : "";
-        if (opacity === 0) hero.setAttribute("aria-hidden", "true");
-        else hero.removeAttribute("aria-hidden");
-      }
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(apply);
-    };
-    apply();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
+  // (Scroll-fade hero effect removed: the sticky hero + semi-transparent overlay
+  // caused the hero title to visibly collide with the feed row during scroll.
+  // The hero now scrolls away normally.)
 
   // When "Closest to me" is selected, request shared geolocation once.
   // B3: if permission is denied, auto-switch the sort dropdown off "distance" so UI matches URL.
@@ -190,16 +165,17 @@ export function Home() {
 
   return (
     <div>
-      {/* Hero: full-bleed, fades out (opacity) as you scroll — opacity applied imperatively via heroRef */}
+      {/* Hero: full-bleed photo w/ tagline. Scrolls away with the page normally — we dropped
+           the earlier sticky+fade trick because the hero title was colliding visibly with the
+           "From people you follow" row as the overlay slid up. */}
       <section
-        ref={heroRef}
-        className="hero-full-bleed sticky top-0 z-0 relative min-h-[88vh] sm:min-h-[92vh] flex items-center justify-center bg-cover bg-center bg-[#161b22] transition-opacity duration-150"
+        className="hero-full-bleed relative min-h-[60vh] sm:min-h-[72vh] flex items-center justify-center bg-cover bg-center bg-[#161b22]"
         style={{
           backgroundImage: `url(${HERO_IMAGE})`,
         }}
       >
-        <div className="absolute inset-0 bg-black/65" aria-hidden />
-        <div className="relative z-10 text-center px-4 sm:px-6 max-w-2xl mx-auto pointer-events-auto">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/60 to-lbx-dark" aria-hidden />
+        <div className="relative z-10 text-center px-4 sm:px-6 max-w-2xl mx-auto">
           <h1 className="font-display font-bold text-3xl sm:text-4xl md:text-5xl text-white mb-4 sm:mb-5 tracking-tight leading-tight">
             Roadtrippi
           </h1>
@@ -219,9 +195,9 @@ export function Home() {
         </div>
       </section>
 
-      {/* Content that scrolls over the hero — solid bg so it covers the hero as you scroll up */}
-      <div className="relative z-10 bg-lbx-dark -mt-px">
-        <p className="text-lbx-muted text-center text-sm mb-2 pt-2">
+      {/* Content — normal flow below the hero. */}
+      <div className="bg-lbx-dark pt-6">
+        <p className="text-lbx-muted text-center text-sm mb-6">
           The social network for roadside attraction lovers.
         </p>
 
