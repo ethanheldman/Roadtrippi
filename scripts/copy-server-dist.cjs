@@ -1,13 +1,19 @@
 #!/usr/bin/env node
-/** Copies server/dist to api/server-dist for Vercel API to load. */
+/**
+ * Copies server/dist to <repo-root>/server-dist so the Vercel API function can load
+ * the compiled app. This used to live at api/server-dist, but Vercel Hobby caps
+ * each deploy at 12 Serverless Functions and auto-detects every .js under /api/
+ * as its own function — which meant adding new server modules pushed the count
+ * over the limit. Keep it at repo root; vercel.json pulls it into the function
+ * bundle via `includeFiles`.
+ */
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 
-// Resolve repo root from this script's location (scripts/copy-server-dist.cjs) so it works when cwd varies (e.g. Vercel)
 const root = path.resolve(__dirname, "..");
 const src = path.join(root, "server", "dist");
-const dest = path.join(root, "api", "server-dist");
+const dest = path.join(root, "server-dist");
 
 if (!fs.existsSync(src)) {
   try {

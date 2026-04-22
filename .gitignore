@@ -7,6 +7,11 @@ dist/
 **/dist/
 *.tsbuildinfo
 **/dist-ssr/
+# Compiled server copied here by scripts/copy-server-dist.cjs at build time.
+# Kept at repo root (not under /api/) so Vercel's auto-function detection
+# doesn't count each .js as its own Serverless Function (Hobby plan caps 12).
+server-dist/
+api/server-dist/
 
 # Environment variables
 .env

@@ -21,10 +21,16 @@ function readRawBody(req: VercelRequest): Promise<Buffer> {
 }
 
 async function loadCreateApp(): Promise<() => Promise<FastifyInstance>> {
-  // On Vercel the function runs from /var/task; server/dist is copied to api/server-dist at build time
+  // The compiled server lives at <repo-root>/server-dist (Vercel packages it into
+  // the function bundle via `includeFiles` in vercel.json). We moved it out of
+  // /api/ because Vercel Hobby caps each deploy at 12 auto-detected functions.
   const paths = [
-    path.join(__dirname, "server-dist", "app.js"),
+    // /var/task/server-dist/app.js — where includeFiles lands it on Vercel.
+    path.join(__dirname, "..", "server-dist", "app.js"),
+    // Local dev / alternate layout fallbacks.
+    path.join(process.cwd(), "server-dist", "app.js"),
     path.join(process.cwd(), "server", "dist", "app.js"),
+    path.join(__dirname, "server-dist", "app.js"),
     path.join(process.cwd(), "api", "server-dist", "app.js"),
   ];
   for (const appPath of paths) {
