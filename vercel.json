@@ -5,11 +5,15 @@
   "framework": "vite",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api?path=$1" },
+    { "source": "/sitemap.xml", "destination": "/api?path=sitemap.xml" },
+    { "source": "/robots.txt", "destination": "/api?path=robots.txt" },
+    { "source": "/attraction/:id", "destination": "/api?path=attraction-html/:id" },
+    { "source": "/best-roadside-attractions/:state", "destination": "/api?path=best-of-html/:state" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "functions": {
     "api/index.ts": {
-      "includeFiles": "server-dist/**"
+      "includeFiles": "{server-dist/**,client/dist/index.html}"
     }
   }
 }

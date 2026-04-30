@@ -11,6 +11,7 @@ import { attractionsRoutes } from "./routes/attractions.js";
 import { usersRoutes } from "./routes/users.js";
 import { checkInsRoutes } from "./routes/check-ins.js";
 import { listsRoutes } from "./routes/lists.js";
+import { seoRoutes } from "./routes/seo.js";
 
 // Serverless (e.g. Vercel) has read-only filesystem; use /tmp and skip mkdir if not writable
 const isVercel = typeof process.env.VERCEL !== "undefined";
@@ -65,6 +66,9 @@ export async function createApp() {
   }, { prefix: "/api/users" });
   await app.register(checkInsRoutes, { prefix: "/api/check-ins" });
   await app.register(listsRoutes, { prefix: "/api/lists" });
+
+  // SEO routes — sitemap.xml, robots.txt, HTML pre-render for /attraction/:id and /best-roadside-attractions/:state
+  await app.register(seoRoutes);
 
   return app;
 }

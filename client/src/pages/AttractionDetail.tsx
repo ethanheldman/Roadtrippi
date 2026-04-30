@@ -8,6 +8,7 @@ import { SaveToWantToSee } from "../components/SaveToWantToSee";
 import { EditCheckIn } from "../components/EditCheckIn";
 import { StarRating } from "../components/StarRating";
 import { StarDisplay } from "../components/StarDisplay";
+import { RelatedAttractions } from "../components/RelatedAttractions";
 
 export function AttractionDetail() {
   const { id } = useParams<{ id: string }>();
@@ -49,6 +50,90 @@ export function AttractionDetail() {
       .catch(() => setAttraction(null))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Update document title + meta description for the current attraction.
+  // Pre-render in seo.ts already injects these for crawlers; this updates the
+  // runtime DOM for SPA navigation and browsers/bots that DO execute JS.
+  useEffect(() => {
+    if (!attraction) return;
+    const cityState = [attraction.city, attraction.state].filter(Boolean).join(", ");
+    const title = cityState
+      ? `${attraction.name} in ${cityState} — Roadtrippi`
+      : `${attraction.name} — Roadtrippi`;
+    document.title = title;
+
+    const setMeta = (selector: string, attrName: string, attrVal: string, content: string) => {
+      let el = document.head.querySelector<HTMLMetaElement>(selector);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attrName, attrVal);
+        document.head.appendChild(el);
+      }
+      el.content = content;
+    };
+    const description =
+      `${attraction.name} is a roadside attraction in ${cityState || "the US"}. ` +
+      (attraction.ratingCount && attraction.ratingCount > 0 && attraction.avgRating != null
+        ? `Rated ${attraction.avgRating.toFixed(1)} stars by ${attraction.ratingCount} Roadtrippi user${attraction.ratingCount === 1 ? "" : "s"}. `
+        : "") +
+      `Track your visit, save it for later, or read reviews on Roadtrippi.`;
+
+    setMeta("meta[name=\"description\"]", "name", "description", description);
+    setMeta("meta[property=\"og:title\"]", "property", "og:title", title);
+    setMeta("meta[property=\"og:description\"]", "property", "og:description", description);
+    setMeta("meta[property=\"og:type\"]", "property", "og:type", "website");
+    if (attraction.imageUrl) {
+      setMeta("meta[property=\"og:image\"]", "property", "og:image", attraction.imageUrl);
+    }
+    setMeta("meta[name=\"twitter:card\"]", "name", "twitter:card", "summary_large_image");
+    setMeta("meta[name=\"twitter:title\"]", "name", "twitter:title", title);
+    setMeta("meta[name=\"twitter:description\"]", "name", "twitter:description", description);
+
+    // Inject JSON-LD (replace existing if there)
+    let ld = document.head.querySelector<HTMLScriptElement>("script[type=\"application/ld+json\"][data-rt=\"attraction\"]");
+    if (!ld) {
+      ld = document.createElement("script");
+      ld.type = "application/ld+json";
+      ld.setAttribute("data-rt", "attraction");
+      document.head.appendChild(ld);
+    }
+    const jsonLd: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "TouristAttraction",
+      name: attraction.name,
+      description: attraction.description ?? description,
+      url: `${window.location.origin}/attraction/${attraction.id}`,
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: attraction.city ?? undefined,
+        addressRegion: attraction.state ?? undefined,
+        addressCountry: "US",
+      },
+    };
+    if (attraction.imageUrl) jsonLd.image = attraction.imageUrl;
+    if (attraction.latitude != null && attraction.longitude != null) {
+      jsonLd.geo = {
+        "@type": "GeoCoordinates",
+        latitude: Number(attraction.latitude),
+        longitude: Number(attraction.longitude),
+      };
+    }
+    if (attraction.ratingCount && attraction.ratingCount > 0 && attraction.avgRating != null) {
+      jsonLd.aggregateRating = {
+        "@type": "AggregateRating",
+        ratingValue: attraction.avgRating.toFixed(1),
+        ratingCount: attraction.ratingCount,
+        bestRating: "5",
+        worstRating: "1",
+      };
+    }
+    ld.textContent = JSON.stringify(jsonLd);
+
+    return () => {
+      // Restore default title on unmount; meta tags persist (not worth churning).
+      document.title = "Roadtrippi";
+    };
+  }, [attraction]);
 
   const handleCheckIn = async () => {
     if (!user || !id) return;
@@ -481,6 +566,14 @@ export function AttractionDetail() {
               </a>
             )}
           </div>
+
+          <RelatedAttractions
+            currentId={attraction.id}
+            state={attraction.state}
+            latitude={attraction.latitude}
+            longitude={attraction.longitude}
+            categories={attraction.categories}
+          />
 
         </div>
       </article>
