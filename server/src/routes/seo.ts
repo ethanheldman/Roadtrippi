@@ -1,7 +1,11 @@
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { PrismaClient } from "@prisma/client";
+
+// ESM compat: __dirname is not defined in ES modules.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const prisma = new PrismaClient();
 
