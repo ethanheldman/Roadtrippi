@@ -223,3 +223,16 @@ model WantToVisit {
   @@id([userId, attractionId])
   @@map("want_to_visit")
 }
+
+// Daily Detour puzzle lock: once a date's mystery attraction is chosen it is
+// stored here and never recomputed, so the puzzle stays stable for the whole
+// day even as the attractions pool changes (e.g. during a scrape/dedup).
+// No FK to Attraction on purpose — if the chosen row is later removed, the
+// game route re-picks and overwrites this row.
+model DailyPuzzle {
+  date         String   @id
+  attractionId String   @map("attraction_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("daily_puzzles")
+}

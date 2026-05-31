@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
@@ -61,8 +62,19 @@ type DailyAttraction = {
   attractionCategories: { category: { name: string } }[];
 };
 
-/** Resolve the deterministic attraction for a given day-seed (stable ordering by id). */
-async function getDailyAttraction(seed: number): Promise<DailyAttraction | null> {
+const DAILY_SELECT = {
+  id: true,
+  name: true,
+  city: true,
+  state: true,
+  description: true,
+  imageUrl: true,
+  sourceUrl: true,
+  attractionCategories: { select: { category: { select: { name: true } } } },
+} as const;
+
+/** Pick the attraction for a day-seed from the CURRENT pool (used once, when locking the day). */
+async function pickDailyAttraction(seed: number): Promise<DailyAttraction | null> {
   const total = await prisma.attraction.count({ where: POOL_WHERE });
   if (total === 0) return null;
   const index = ((seed % total) + total) % total;
@@ -71,18 +83,50 @@ async function getDailyAttraction(seed: number): Promise<DailyAttraction | null>
     orderBy: { id: "asc" },
     skip: index,
     take: 1,
-    select: {
-      id: true,
-      name: true,
-      city: true,
-      state: true,
-      description: true,
-      imageUrl: true,
-      sourceUrl: true,
-      attractionCategories: { select: { category: { select: { name: true } } } },
-    },
+    select: DAILY_SELECT,
   });
   return (rows[0] as DailyAttraction) ?? null;
+}
+
+/**
+ * Resolve today's attraction, locking it in the daily_puzzles table on first
+ * use so it can NEVER change for the rest of the day — even while the
+ * attractions pool is mutating (scrape/dedup). If a previously-locked row was
+ * since deleted, re-pick and overwrite the lock.
+ */
+async function getDailyAttraction(date: string, seed: number): Promise<DailyAttraction | null> {
+  const lock = await prisma.dailyPuzzle.findUnique({ where: { date } });
+  if (lock) {
+    const existing = await prisma.attraction.findUnique({
+      where: { id: lock.attractionId },
+      select: DAILY_SELECT,
+    });
+    if (existing) return existing as DailyAttraction;
+  }
+
+  const picked = await pickDailyAttraction(seed);
+  if (!picked) return null;
+  try {
+    await prisma.dailyPuzzle.upsert({
+      where: { date },
+      create: { date, attractionId: picked.id },
+      update: { attractionId: picked.id },
+    });
+    return picked;
+  } catch {
+    // Race: another request locked it first — honor whatever is stored.
+    const winner = await prisma.dailyPuzzle.findUnique({ where: { date } });
+    if (winner) {
+      const a = await prisma.attraction.findUnique({ where: { id: winner.attractionId }, select: DAILY_SELECT });
+      if (a) return a as DailyAttraction;
+    }
+    return picked;
+  }
+}
+
+/** Opaque, non-revealing fingerprint of the day's answer; changes if the answer changes. */
+function puzzleKeyFor(attractionId: string): string {
+  return crypto.createHash("sha1").update(attractionId).digest("hex").slice(0, 12);
 }
 
 /** Redact answer-revealing terms (the name, its longer words, the town) from the description clue. */
@@ -119,11 +163,12 @@ export async function gameRoutes(app: FastifyInstance) {
   // Today's puzzle: clues only, no answer.
   app.get("/daily", async (_req: FastifyRequest, reply: FastifyReply) => {
     const { date, seed } = gameDay();
-    const a = await getDailyAttraction(seed);
+    const a = await getDailyAttraction(date, seed);
     if (!a) return reply.status(503).send({ error: "No puzzle available today" });
     return reply.send({
       date,
       number: seed - LAUNCH_SEED + 1,
+      puzzleKey: puzzleKeyFor(a.id),
       maxGuesses: MAX_GUESSES,
       totalClues: TOTAL_CLUES,
       clues: buildClues(a),
@@ -134,16 +179,16 @@ export async function gameRoutes(app: FastifyInstance) {
   app.post("/guess", async (req: FastifyRequest, reply: FastifyReply) => {
     const body = z.object({ attractionId: z.string().min(1) }).safeParse(req.body);
     if (!body.success) return reply.status(400).send({ error: "Invalid guess" });
-    const { seed } = gameDay();
-    const a = await getDailyAttraction(seed);
+    const { date, seed } = gameDay();
+    const a = await getDailyAttraction(date, seed);
     if (!a) return reply.status(503).send({ error: "No puzzle available today" });
     return reply.send({ correct: body.data.attractionId === a.id });
   });
 
   // The reveal — fetched by the client only after the game ends (win or loss).
   app.get("/answer", async (_req: FastifyRequest, reply: FastifyReply) => {
-    const { seed } = gameDay();
-    const a = await getDailyAttraction(seed);
+    const { date, seed } = gameDay();
+    const a = await getDailyAttraction(date, seed);
     if (!a) return reply.status(503).send({ error: "No puzzle available today" });
     return reply.send({
       id: a.id,

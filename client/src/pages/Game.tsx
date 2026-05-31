@@ -24,6 +24,8 @@ type GuessRow = { id: string; name: string; correct: boolean };
 type Status = "playing" | "won" | "lost";
 type Progress = {
   date: string;
+  /** Fingerprint of the puzzle this progress belongs to; if the day's answer changes, this won't match. */
+  puzzleKey?: string;
   guesses: GuessRow[];
   status: Status;
   revealed: number;
@@ -178,7 +180,11 @@ export function Game() {
         if (cancelled) return;
         setDaily(d);
         const saved = loadProgress(d.date);
-        if (saved) {
+        // Self-heal: only restore progress that belongs to THIS exact puzzle.
+        // If the day's answer changed (e.g. the pool shifted during a scrape),
+        // the stored puzzleKey won't match — start fresh instead of showing a
+        // stale "you won" against a different attraction.
+        if (saved && saved.puzzleKey === d.puzzleKey) {
           setGuesses(saved.guesses);
           setRevealed(saved.revealed);
           setStatus(saved.status);
@@ -271,6 +277,7 @@ export function Game() {
 
       const progress: Progress = {
         date: daily.date,
+        puzzleKey: daily.puzzleKey,
         guesses: nextGuesses,
         status: nextStatus,
         revealed: nextRevealed,
@@ -292,6 +299,7 @@ export function Game() {
     setRevealed(daily.totalClues);
     saveProgress({
       date: daily.date,
+      puzzleKey: daily.puzzleKey,
       guesses,
       status: "lost",
       revealed: daily.totalClues,

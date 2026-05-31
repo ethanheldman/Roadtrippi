@@ -145,6 +145,8 @@ export type GameClue = {
 export type DailyGame = {
   date: string;
   number: number;
+  /** Opaque fingerprint of the day's answer; if it changes, saved progress is stale. */
+  puzzleKey: string;
   maxGuesses: number;
   totalClues: number;
   clues: GameClue[];
