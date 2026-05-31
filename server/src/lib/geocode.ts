@@ -6,7 +6,9 @@
 
 import { parseCityStateFromAddress } from "./address.js";
 
-const USER_AGENT = "RoadsideWonders/1.0 (local dev; geocoding for map)";
+// Nominatim's usage policy requires a valid identifying User-Agent with a real
+// contact, or it will rate-limit / 429 the caller.
+const USER_AGENT = "Roadtrippi/1.0 (https://roadtrippi.com; eheldman@bowdoin.edu)";
 const GEOCODE_TIMEOUT_MS = 25_000;
 
 function addressForGeocode(address: string | null): string | null {

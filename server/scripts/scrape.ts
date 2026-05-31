@@ -8,6 +8,7 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from "fs";
 import { join } from "path";
+import { pathToFileURL } from "url";
 
 const BASE = "https://www.roadsideamerica.com";
 const DELAY_MS = 4500; // ~4.5s between requests
@@ -52,7 +53,7 @@ const client = axios.create({
   },
 });
 
-function delay(ms: number): Promise<void> {
+export function delay(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
@@ -236,7 +237,7 @@ async function getMufflerManIds(): Promise<{ storyIds: string[]; tipIds: string[
 }
 
 /** Parse one tip page (e.g. /tip/5889) into same shape as story */
-async function parseTipPage(tipId: string): Promise<{
+export async function parseTipPage(tipId: string): Promise<{
   name: string;
   city: string | null;
   state: string;
@@ -294,7 +295,7 @@ async function parseTipPage(tipId: string): Promise<{
 }
 
 /** Parse one story page into { name, city, state, description, address, sourceUrl, imageUrl } */
-async function parseStoryPage(storyId: string): Promise<{
+export async function parseStoryPage(storyId: string): Promise<{
   name: string;
   city: string | null;
   state: string;
@@ -770,7 +771,14 @@ async function main() {
   console.log(`\nWrote ${valid.length} attractions to ${outPath}`);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+// Only run the crawler when this file is executed directly (e.g. `tsx scripts/scrape.ts`).
+// When imported by another script (e.g. the targeted gap-fix), we just want the exported
+// parsers — importing must NOT kick off a full scrape.
+const invokedDirectly =
+  !!process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (invokedDirectly) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
