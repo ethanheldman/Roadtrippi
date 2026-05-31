@@ -37,6 +37,12 @@ const ListDetail = lazy(() =>
 const MapPage = lazy(() =>
   import("./pages/Map").then((m) => ({ default: m.Map }))
 );
+const BestOfState = lazy(() =>
+  import("./pages/BestOfState").then((m) => ({ default: m.BestOfState }))
+);
+const Game = lazy(() =>
+  import("./pages/Game").then((m) => ({ default: m.Game }))
+);
 
 /** Minimal fallback — matches the app's dark card style to avoid flash. */
 function RouteFallback() {
@@ -56,6 +62,8 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/map" element={<MapPage />} />
+              <Route path="/game" element={<Game />} />
+              <Route path="/best-roadside-attractions/:state" element={<BestOfState />} />
               <Route path="/attraction/:id" element={<AttractionDetail />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />

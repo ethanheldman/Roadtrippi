@@ -91,6 +91,16 @@ export function Layout({ children }: { children: ReactNode }) {
               Map
             </Link>
             <Link
+              to="/game"
+              className={`flex items-center gap-1 ${loc.pathname === "/game" ? "text-lbx-green" : "text-lbx-muted hover:text-lbx-white transition-colors"}`}
+              title="Daily Detour — guess today's mystery roadside attraction"
+            >
+              Play
+              <span className="text-[10px] leading-none bg-lbx-green/15 text-lbx-green px-1.5 py-0.5 rounded-full uppercase tracking-wide font-semibold">
+                Daily
+              </span>
+            </Link>
+            <Link
               to="/people"
               className={loc.pathname === "/people" ? "text-lbx-green" : "text-lbx-muted hover:text-lbx-white transition-colors"}
             >
@@ -172,6 +182,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 Explore
               </Link>
               <Link to="/map" className="hover:text-lbx-green transition-colors">Map</Link>
+              <Link to="/game" className="hover:text-lbx-green transition-colors">Play</Link>
               <Link to="/people" className="hover:text-lbx-green transition-colors">People</Link>
             </nav>
           </div>

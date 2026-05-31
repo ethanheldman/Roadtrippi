@@ -135,6 +135,43 @@ export const attractions = {
   },
 };
 
+// ── Daily Detour: the once-a-day, Pinpoint-style guessing game ──────────────
+export type GameClue = {
+  type: "category" | "state" | "description" | "city" | "image";
+  label: string;
+  value: string;
+};
+
+export type DailyGame = {
+  date: string;
+  number: number;
+  maxGuesses: number;
+  totalClues: number;
+  clues: GameClue[];
+};
+
+export type GameAnswer = {
+  id: string;
+  name: string;
+  city: string | null;
+  state: string;
+  imageUrl: string | null;
+  sourceUrl: string | null;
+};
+
+export const game = {
+  /** Today's puzzle — clues only, no answer. */
+  daily: () => api<DailyGame>("/api/game/daily"),
+  /** Validate a guess server-side. */
+  guess: (attractionId: string) =>
+    api<{ correct: boolean }>("/api/game/guess", {
+      method: "POST",
+      body: JSON.stringify({ attractionId }),
+    }),
+  /** The reveal — only call after the game is over (win or loss). */
+  answer: () => api<GameAnswer>("/api/game/answer"),
+};
+
 export const checkIns = {
   my: () => api<{ items: unknown[] }>("/api/check-ins/me"),
   create: (data: { attractionId: string; rating?: number; review?: string; visitDate: string }) =>
