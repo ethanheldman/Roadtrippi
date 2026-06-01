@@ -91,21 +91,14 @@ export function Layout({ children }: { children: ReactNode }) {
               Map
             </Link>
             <Link
-              to="/game"
-              className={`flex items-center gap-1 ${loc.pathname === "/game" ? "text-lbx-green" : "text-lbx-muted hover:text-lbx-white transition-colors"}`}
-              title="Daily Detour — guess today's mystery roadside attraction"
+              to="/play"
+              className={`flex items-center gap-1 ${loc.pathname === "/play" || loc.pathname.startsWith("/game") || loc.pathname === "/connections" ? "text-lbx-green" : "text-lbx-muted hover:text-lbx-white transition-colors"}`}
+              title="Daily games — Detour & Connections"
             >
               Play
               <span className="text-[10px] leading-none bg-lbx-green/15 text-lbx-green px-1.5 py-0.5 rounded-full uppercase tracking-wide font-semibold">
                 Daily
               </span>
-            </Link>
-            <Link
-              to="/connections"
-              className={loc.pathname === "/connections" ? "text-lbx-green" : "text-lbx-muted hover:text-lbx-white transition-colors"}
-              title="Roadside Connections — group the 16 attractions"
-            >
-              Connect
             </Link>
             <Link
               to="/people"
@@ -189,8 +182,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 Explore
               </Link>
               <Link to="/map" className="hover:text-lbx-green transition-colors">Map</Link>
-              <Link to="/game" className="hover:text-lbx-green transition-colors">Play</Link>
-              <Link to="/connections" className="hover:text-lbx-green transition-colors">Connect</Link>
+              <Link to="/play" className="hover:text-lbx-green transition-colors">Play</Link>
               <Link to="/people" className="hover:text-lbx-green transition-colors">People</Link>
             </nav>
           </div>

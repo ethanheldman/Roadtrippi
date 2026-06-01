@@ -49,6 +49,9 @@ const GameArchive = lazy(() =>
 const Connections = lazy(() =>
   import("./pages/Connections").then((m) => ({ default: m.Connections }))
 );
+const Play = lazy(() =>
+  import("./pages/Play").then((m) => ({ default: m.Play }))
+);
 
 /** Minimal fallback — matches the app's dark card style to avoid flash. */
 function RouteFallback() {
@@ -68,6 +71,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/map" element={<MapPage />} />
+              <Route path="/play" element={<Play />} />
               <Route path="/game" element={<Game />} />
               <Route path="/game/archive" element={<GameArchive />} />
               <Route path="/game/:date" element={<Game />} />
