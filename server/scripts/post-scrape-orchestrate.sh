@@ -26,6 +26,9 @@ npx tsx scripts/dedupe-attractions.ts >>"$LOG" 2>&1 || echo "dedupe-attractions 
 echo "--- dedupe-by-source-basename ---" >>"$LOG"
 npx tsx scripts/dedupe-by-source-basename.ts >>"$LOG" 2>&1 || echo "dedupe-by-source failed" >>"$LOG"
 
+echo "--- classify every attraction into one correct type ---" >>"$LOG"
+node scripts/classify-attractions.mjs >>"$LOG" 2>&1 || echo "classify failed" >>"$LOG"
+
 echo "--- derive-state-from-image (any new US rows) ---" >>"$LOG"
 node scripts/derive-state-from-image.mjs >>"$LOG" 2>&1 || echo "derive-state failed" >>"$LOG"
 
