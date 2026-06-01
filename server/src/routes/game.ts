@@ -51,6 +51,28 @@ function gameDay(now = new Date()): { date: string; seed: number } {
 // Puzzle #1 = the first day on/after launch. Used only for the displayed number.
 const LAUNCH_SEED = Math.floor(Date.UTC(2026, 0, 1) / 86_400_000);
 
+/** Day-seed for an explicit YYYY-MM-DD string (UTC midnight of that calendar date). */
+function seedForDate(date: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const [y, m, d] = date.split("-").map(Number);
+  const seed = Math.floor(Date.UTC(y!, m! - 1, d!) / 86_400_000);
+  return Number.isFinite(seed) ? seed : null;
+}
+
+/**
+ * Resolve the day a request targets: an explicit archive date (must be on/after
+ * launch and not in the future) or, when omitted, today. Returns null for an
+ * out-of-range or malformed date — callers reject with 400. Refusing future
+ * dates also stops anyone from peeking at / pre-locking tomorrow's puzzle.
+ */
+function resolveGameDay(requested?: string): { date: string; seed: number } | null {
+  const today = gameDay();
+  if (!requested) return today;
+  const seed = seedForDate(requested);
+  if (seed === null || seed < LAUNCH_SEED || seed > today.seed) return null;
+  return { date: requested, seed };
+}
+
 type DailyAttraction = {
   id: string;
   name: string;
@@ -160,14 +182,16 @@ function buildClues(a: DailyAttraction): Clue[] {
 }
 
 export async function gameRoutes(app: FastifyInstance) {
-  // Today's puzzle: clues only, no answer.
-  app.get("/daily", async (_req: FastifyRequest, reply: FastifyReply) => {
-    const { date, seed } = gameDay();
-    const a = await getDailyAttraction(date, seed);
-    if (!a) return reply.status(503).send({ error: "No puzzle available today" });
+  // A puzzle's clues (no answer). Defaults to today; ?date=YYYY-MM-DD plays an
+  // archived past puzzle.
+  app.get("/daily", async (req: FastifyRequest, reply: FastifyReply) => {
+    const day = resolveGameDay((req.query as { date?: string }).date);
+    if (!day) return reply.status(400).send({ error: "Invalid or out-of-range date" });
+    const a = await getDailyAttraction(day.date, day.seed);
+    if (!a) return reply.status(503).send({ error: "No puzzle available" });
     return reply.send({
-      date,
-      number: seed - LAUNCH_SEED + 1,
+      date: day.date,
+      number: day.seed - LAUNCH_SEED + 1,
       puzzleKey: puzzleKeyFor(a.id),
       maxGuesses: MAX_GUESSES,
       totalClues: TOTAL_CLUES,
@@ -175,21 +199,23 @@ export async function gameRoutes(app: FastifyInstance) {
     });
   });
 
-  // Validate a guess against today's answer. Returns only correct/incorrect.
+  // Validate a guess against a puzzle's answer (today's, or ?date in the body).
   app.post("/guess", async (req: FastifyRequest, reply: FastifyReply) => {
-    const body = z.object({ attractionId: z.string().min(1) }).safeParse(req.body);
+    const body = z.object({ attractionId: z.string().min(1), date: z.string().optional() }).safeParse(req.body);
     if (!body.success) return reply.status(400).send({ error: "Invalid guess" });
-    const { date, seed } = gameDay();
-    const a = await getDailyAttraction(date, seed);
-    if (!a) return reply.status(503).send({ error: "No puzzle available today" });
+    const day = resolveGameDay(body.data.date);
+    if (!day) return reply.status(400).send({ error: "Invalid or out-of-range date" });
+    const a = await getDailyAttraction(day.date, day.seed);
+    if (!a) return reply.status(503).send({ error: "No puzzle available" });
     return reply.send({ correct: body.data.attractionId === a.id });
   });
 
   // The reveal — fetched by the client only after the game ends (win or loss).
-  app.get("/answer", async (_req: FastifyRequest, reply: FastifyReply) => {
-    const { date, seed } = gameDay();
-    const a = await getDailyAttraction(date, seed);
-    if (!a) return reply.status(503).send({ error: "No puzzle available today" });
+  app.get("/answer", async (req: FastifyRequest, reply: FastifyReply) => {
+    const day = resolveGameDay((req.query as { date?: string }).date);
+    if (!day) return reply.status(400).send({ error: "Invalid or out-of-range date" });
+    const a = await getDailyAttraction(day.date, day.seed);
+    if (!a) return reply.status(503).send({ error: "No puzzle available" });
     return reply.send({
       id: a.id,
       name: a.name,
@@ -198,5 +224,19 @@ export async function gameRoutes(app: FastifyInstance) {
       imageUrl: a.imageUrl,
       sourceUrl: a.sourceUrl,
     });
+  });
+
+  // Archive: every past puzzle (#1 .. yesterday), newest first. No answers —
+  // just number + date; the client marks solved/attempted from local storage.
+  app.get("/archive", async (_req: FastifyRequest, reply: FastifyReply) => {
+    const today = gameDay();
+    const todayNumber = today.seed - LAUNCH_SEED + 1;
+    const items: { number: number; date: string }[] = [];
+    for (let n = todayNumber - 1; n >= 1; n--) {
+      const seed = LAUNCH_SEED + (n - 1);
+      const date = new Date(seed * 86_400_000).toISOString().slice(0, 10);
+      items.push({ number: n, date });
+    }
+    return reply.send({ items });
   });
 }

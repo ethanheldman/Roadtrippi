@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
   attractions as attractionsApi,
   game as gameApi,
@@ -67,12 +67,12 @@ function saveProgress(p: Progress) {
   try {
     const raw = localStorage.getItem(PROGRESS_KEY);
     const all = raw ? (JSON.parse(raw) as Record<string, Progress>) : {};
-    // Keep only the last few days to avoid unbounded growth.
+    // Keep a long history so the archive can show past results / resume games.
     const trimmed: Record<string, Progress> = { [p.date]: p };
     Object.entries(all)
       .filter(([d]) => d !== p.date)
       .sort(([a], [b]) => (a < b ? 1 : -1))
-      .slice(0, 6)
+      .slice(0, 730)
       .forEach(([d, v]) => (trimmed[d] = v));
     localStorage.setItem(PROGRESS_KEY, JSON.stringify(trimmed));
   } catch {
@@ -151,6 +151,10 @@ function clueIcon(type: GameClue["type"]): string {
 }
 
 export function Game() {
+  // When present, we're playing an archived puzzle for this date instead of today.
+  const { date: archiveDate } = useParams<{ date: string }>();
+  const isArchive = !!archiveDate;
+
   const [daily, setDaily] = useState<DailyGame | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -171,12 +175,22 @@ export function Game() {
   const [countdown, setCountdown] = useState(() => msUntilNextEtMidnight());
   const [copied, setCopied] = useState(false);
 
-  // ── Load today's puzzle + restore saved progress ────────────────────────
+  // ── Load the puzzle (today or an archive date) + restore saved progress ──
   useEffect(() => {
+    // Reset so navigating between archive games doesn't leak prior state.
+    setLoading(true);
+    setError(null);
+    setDaily(null);
+    setGuesses([]);
+    setRevealed(1);
+    setStatus("playing");
+    setAnswer(null);
+    setQuery("");
+    setResults([]);
     let cancelled = false;
     (async () => {
       try {
-        const d = await gameApi.daily();
+        const d = await gameApi.daily(archiveDate);
         if (cancelled) return;
         setDaily(d);
         const saved = loadProgress(d.date);
@@ -189,11 +203,11 @@ export function Game() {
           setRevealed(saved.revealed);
           setStatus(saved.status);
           if (saved.status !== "playing") {
-            gameApi.answer().then((a) => !cancelled && setAnswer(a)).catch(() => {});
+            gameApi.answer(archiveDate).then((a) => !cancelled && setAnswer(a)).catch(() => {});
           }
         }
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Could not load today's puzzle");
+        if (!cancelled) setError(e instanceof Error ? e.message : "Could not load that puzzle");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -201,7 +215,7 @@ export function Game() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [archiveDate]);
 
   // Countdown ticker (only meaningful once the game is over).
   useEffect(() => {
@@ -251,7 +265,7 @@ export function Game() {
 
       let correct = false;
       try {
-        const res = await gameApi.guess(attraction.id);
+        const res = await gameApi.guess(attraction.id, archiveDate);
         correct = res.correct;
       } catch {
         setError("Couldn't check that guess — try again.");
@@ -286,11 +300,12 @@ export function Game() {
       saveProgress(progress);
 
       if (nextStatus !== "playing") {
-        setStats(recordStats(daily.date, nextStatus === "won", nextGuesses.length));
-        gameApi.answer().then(setAnswer).catch(() => {});
+        // Streak/stats only count the live daily — archive replays don't.
+        if (!isArchive) setStats(recordStats(daily.date, nextStatus === "won", nextGuesses.length));
+        gameApi.answer(archiveDate).then(setAnswer).catch(() => {});
       }
     },
-    [daily, status, alreadyGuessed, guesses, revealed]
+    [daily, status, alreadyGuessed, guesses, revealed, archiveDate, isArchive]
   );
 
   const giveUp = useCallback(() => {
@@ -305,9 +320,9 @@ export function Game() {
       revealed: daily.totalClues,
       statsCounted: true,
     });
-    setStats(recordStats(daily.date, false, guesses.length));
-    gameApi.answer().then(setAnswer).catch(() => {});
-  }, [daily, status, guesses]);
+    if (!isArchive) setStats(recordStats(daily.date, false, guesses.length));
+    gameApi.answer(archiveDate).then(setAnswer).catch(() => {});
+  }, [daily, status, guesses, archiveDate, isArchive]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (results.length === 0) return;
@@ -378,11 +393,24 @@ export function Game() {
     <div className="max-w-2xl mx-auto py-6 sm:py-10">
       {/* Header */}
       <div className="text-center mb-8">
+        {isArchive && (
+          <div className="mb-3 flex items-center justify-center gap-4 text-xs">
+            <Link to="/game/archive" className="text-lbx-muted hover:text-lbx-green transition-colors">
+              ← Archive
+            </Link>
+            <span className="text-lbx-green/80 bg-lbx-green/10 px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">
+              Archive
+            </span>
+            <Link to="/game" className="text-lbx-muted hover:text-lbx-green transition-colors">
+              Today&apos;s puzzle →
+            </Link>
+          </div>
+        )}
         <h1 className="font-display text-3xl sm:text-4xl font-bold text-lbx-white tracking-tight">
           Daily Detour
         </h1>
         <p className="text-lbx-muted mt-1 text-sm">
-          Guess today&apos;s mystery roadside attraction. A new clue unlocks with every miss.
+          Guess the mystery roadside attraction. A new clue unlocks with every miss.
         </p>
         <p className="text-lbx-muted/70 mt-2 text-xs uppercase tracking-wider">
           No. {daily.number} ·{" "}
@@ -393,6 +421,14 @@ export function Game() {
             timeZone: "UTC",
           })}
         </p>
+        {!isArchive && (
+          <Link
+            to="/game/archive"
+            className="inline-block mt-3 text-xs text-lbx-green hover:underline"
+          >
+            ↩ Past puzzles
+          </Link>
+        )}
       </div>
 
       {/* Clues */}
@@ -541,7 +577,9 @@ export function Game() {
                 🎉 Got it in {guesses.length} {guesses.length === 1 ? "guess" : "guesses"}!
               </p>
             ) : (
-              <p className="text-lbx-red font-semibold text-lg">Out of guesses — better luck tomorrow!</p>
+              <p className="text-lbx-red font-semibold text-lg">
+                Out of guesses — {isArchive ? "try another!" : "better luck tomorrow!"}
+              </p>
             )}
           </div>
 
@@ -559,7 +597,7 @@ export function Game() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs uppercase tracking-wider text-lbx-muted mb-0.5">
-                  Today&apos;s attraction
+                  {isArchive ? "The attraction" : "Today's attraction"}
                 </p>
                 <p className="font-display text-xl text-lbx-white font-semibold truncate">
                   {answer.name}
@@ -584,18 +622,28 @@ export function Game() {
             >
               {copied ? "Copied to clipboard!" : "Share result"}
             </button>
-            <p className="text-center text-lbx-muted text-xs mt-3">
-              Next detour in <span className="text-lbx-white font-mono">{formatCountdown(countdown)}</span>
-            </p>
+            {isArchive ? (
+              <p className="text-center text-xs mt-3">
+                <Link to="/game/archive" className="text-lbx-green hover:underline">
+                  ← Back to the archive
+                </Link>
+              </p>
+            ) : (
+              <p className="text-center text-lbx-muted text-xs mt-3">
+                Next detour in <span className="text-lbx-white font-mono">{formatCountdown(countdown)}</span>
+              </p>
+            )}
           </div>
 
-          {/* Stats */}
-          <div className="border-t border-lbx-border px-5 py-4 grid grid-cols-4 gap-2 text-center">
-            <Stat label="Played" value={stats.played} />
-            <Stat label="Win %" value={winPct} />
-            <Stat label="Streak" value={stats.currentStreak} />
-            <Stat label="Max" value={stats.maxStreak} />
-          </div>
+          {/* Stats — the streak only tracks the live daily, so hide it on archive replays. */}
+          {!isArchive && (
+            <div className="border-t border-lbx-border px-5 py-4 grid grid-cols-4 gap-2 text-center">
+              <Stat label="Played" value={stats.played} />
+              <Stat label="Win %" value={winPct} />
+              <Stat label="Streak" value={stats.currentStreak} />
+              <Stat label="Max" value={stats.maxStreak} />
+            </div>
+          )}
         </div>
       )}
 

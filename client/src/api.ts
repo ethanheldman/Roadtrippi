@@ -161,17 +161,23 @@ export type GameAnswer = {
   sourceUrl: string | null;
 };
 
+export type ArchivePuzzle = { number: number; date: string };
+
 export const game = {
-  /** Today's puzzle — clues only, no answer. */
-  daily: () => api<DailyGame>("/api/game/daily"),
-  /** Validate a guess server-side. */
-  guess: (attractionId: string) =>
+  /** A puzzle's clues — today by default, or a past `date` (YYYY-MM-DD) from the archive. */
+  daily: (date?: string) =>
+    api<DailyGame>(`/api/game/daily${date ? `?date=${encodeURIComponent(date)}` : ""}`),
+  /** Validate a guess server-side (optionally against a past `date`). */
+  guess: (attractionId: string, date?: string) =>
     api<{ correct: boolean }>("/api/game/guess", {
       method: "POST",
-      body: JSON.stringify({ attractionId }),
+      body: JSON.stringify({ attractionId, ...(date ? { date } : {}) }),
     }),
   /** The reveal — only call after the game is over (win or loss). */
-  answer: () => api<GameAnswer>("/api/game/answer"),
+  answer: (date?: string) =>
+    api<GameAnswer>(`/api/game/answer${date ? `?date=${encodeURIComponent(date)}` : ""}`),
+  /** List of past puzzles (#1 .. yesterday), newest first. */
+  archive: () => api<{ items: ArchivePuzzle[] }>("/api/game/archive"),
 };
 
 export const checkIns = {
