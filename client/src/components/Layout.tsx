@@ -92,7 +92,7 @@ export function Layout({ children }: { children: ReactNode }) {
             </Link>
             <Link
               to="/play"
-              className={`flex items-center gap-1 ${loc.pathname === "/play" || loc.pathname.startsWith("/game") || loc.pathname === "/connections" ? "text-lbx-green" : "text-lbx-muted hover:text-lbx-white transition-colors"}`}
+              className={`flex items-center gap-1 ${loc.pathname === "/play" || loc.pathname.startsWith("/game") || loc.pathname === "/connections" || loc.pathname === "/geo" ? "text-lbx-green" : "text-lbx-muted hover:text-lbx-white transition-colors"}`}
               title="Daily games — Detour & Connections"
             >
               Play

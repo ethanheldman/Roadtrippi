@@ -182,6 +182,27 @@ export type ConnAnswer = {
   groups: { key: string; label: string; level: number; tiles: ConnTile[] }[];
 };
 
+// ── Where in the USA? — GeoGuessr-style location game ───────────────────────
+export type GeoRound = { id: string; name: string; imageUrl: string };
+export type GeoResult = {
+  actual: { lat: number; lng: number };
+  name: string;
+  city: string | null;
+  state: string;
+  imageUrl: string | null;
+  sourceUrl: string | null;
+  distanceMiles: number;
+  points: number;
+};
+
+export const geo = {
+  /** A fresh set of random rounds (photo + name, no coordinates). */
+  round: (n = 5) => api<{ rounds: GeoRound[]; maxPoints: number }>(`/api/geo/round?n=${n}`),
+  /** Score a guess; reveals the real location. */
+  guess: (id: string, lat: number, lng: number) =>
+    api<GeoResult>("/api/geo/guess", { method: "POST", body: JSON.stringify({ id, lat, lng }) }),
+};
+
 export const connections = {
   /** Today's 16 tiles (no group assignments). */
   today: () => api<ConnectionsGame>("/api/connections"),

@@ -30,6 +30,13 @@ const GAMES: GameCard[] = [
     blurb: "Sort 16 attractions into four groups of four that share a trait. Watch for the red herrings — you get four mistakes.",
     cta: "Play today's puzzle",
   },
+  {
+    to: "/geo",
+    emoji: "🌎",
+    title: "Where in the USA?",
+    blurb: "See an attraction and drop a pin on the map where you think it is. Five rounds, scored by distance — how well do you know the country?",
+    cta: "Start guessing",
+  },
 ];
 
 export function Play() {
@@ -44,7 +51,7 @@ export function Play() {
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-4">
+      <div className="grid sm:grid-cols-3 gap-4">
         {GAMES.map((g) => (
           <div
             key={g.to}

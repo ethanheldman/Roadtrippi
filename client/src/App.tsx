@@ -52,6 +52,9 @@ const Connections = lazy(() =>
 const Play = lazy(() =>
   import("./pages/Play").then((m) => ({ default: m.Play }))
 );
+const GeoGuess = lazy(() =>
+  import("./pages/GeoGuess").then((m) => ({ default: m.GeoGuess }))
+);
 
 /** Minimal fallback — matches the app's dark card style to avoid flash. */
 function RouteFallback() {
@@ -76,6 +79,7 @@ function App() {
               <Route path="/game/archive" element={<GameArchive />} />
               <Route path="/game/:date" element={<Game />} />
               <Route path="/connections" element={<Connections />} />
+              <Route path="/geo" element={<GeoGuess />} />
               <Route path="/best-roadside-attractions/:state" element={<BestOfState />} />
               <Route path="/attraction/:id" element={<AttractionDetail />} />
               <Route path="/login" element={<Login />} />
