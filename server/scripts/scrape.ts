@@ -57,6 +57,20 @@ export function delay(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/**
+ * Reject RoadsideAmerica's site logo and other obvious non-photos. Pages with
+ * no real picture expose the logo as og:image; storing that makes a tile look
+ * broken/blank. Returning null lets the app show its branded placeholder, and
+ * (since the DB upsert only writes imageUrl when non-null) avoids clobbering a
+ * previously-good photo with the logo on re-scrape.
+ */
+function cleanImageUrl(url: string | null): string | null {
+  if (!url) return null;
+  const u = url.toLowerCase();
+  if (u.includes("roadside-america-logo") || u.includes("/images/logo") || u.endsWith(".svg")) return null;
+  return url;
+}
+
 async function fetchHtml(path: string): Promise<string> {
   const res = await client.get(path);
   return res.data as string;
@@ -286,7 +300,7 @@ export async function parseTipPage(tipId: string): Promise<{
       description,
       address,
       sourceUrl: `${BASE}/tip/${tipId}`,
-      imageUrl,
+      imageUrl: cleanImageUrl(imageUrl),
     };
   } catch (e) {
     console.warn(`Failed to parse tip ${tipId}:`, (e as Error).message);
@@ -363,7 +377,7 @@ export async function parseStoryPage(storyId: string): Promise<{
       description,
       address,
       sourceUrl: `${BASE}/story/${storyId}`,
-      imageUrl,
+      imageUrl: cleanImageUrl(imageUrl),
     };
   } catch (e) {
     console.warn(`Failed to parse story ${storyId}:`, (e as Error).message);
