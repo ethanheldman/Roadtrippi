@@ -55,6 +55,9 @@ const Play = lazy(() =>
 const GeoGuess = lazy(() =>
   import("./pages/GeoGuess").then((m) => ({ default: m.GeoGuess }))
 );
+const FeaturedLists = lazy(() =>
+  import("./pages/FeaturedLists").then((m) => ({ default: m.FeaturedLists }))
+);
 
 /** Minimal fallback — matches the app's dark card style to avoid flash. */
 function RouteFallback() {
@@ -74,6 +77,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/map" element={<MapPage />} />
+              <Route path="/featured" element={<FeaturedLists />} />
               <Route path="/play" element={<Play />} />
               <Route path="/game" element={<Game />} />
               <Route path="/game/archive" element={<GameArchive />} />

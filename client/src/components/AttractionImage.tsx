@@ -45,6 +45,7 @@ export function AttractionImage({ imageUrl, alt = "", className, placeholder }: 
       alt={alt}
       className={className}
       referrerPolicy="no-referrer"
+      loading="lazy"
       onError={() => setError(true)}
     />
   );

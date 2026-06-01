@@ -91,6 +91,12 @@ export function Layout({ children }: { children: ReactNode }) {
               Map
             </Link>
             <Link
+              to="/featured"
+              className={loc.pathname === "/featured" ? "text-lbx-green" : "text-lbx-muted hover:text-lbx-white transition-colors"}
+            >
+              Featured
+            </Link>
+            <Link
               to="/play"
               className={`flex items-center gap-1 ${loc.pathname === "/play" || loc.pathname.startsWith("/game") || loc.pathname === "/connections" || loc.pathname === "/geo" ? "text-lbx-green" : "text-lbx-muted hover:text-lbx-white transition-colors"}`}
               title="Daily games — Detour & Connections"
@@ -182,6 +188,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 Explore
               </Link>
               <Link to="/map" className="hover:text-lbx-green transition-colors">Map</Link>
+              <Link to="/featured" className="hover:text-lbx-green transition-colors">Featured</Link>
               <Link to="/play" className="hover:text-lbx-green transition-colors">Play</Link>
               <Link to="/people" className="hover:text-lbx-green transition-colors">People</Link>
             </nav>
