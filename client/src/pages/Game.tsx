@@ -422,12 +422,14 @@ export function Game() {
           })}
         </p>
         {!isArchive && (
-          <Link
-            to="/game/archive"
-            className="inline-block mt-3 text-xs text-lbx-green hover:underline"
-          >
-            ↩ Past puzzles
-          </Link>
+          <div className="mt-3 flex items-center justify-center gap-4 text-xs">
+            <Link to="/game/archive" className="text-lbx-green hover:underline">
+              ↩ Past puzzles
+            </Link>
+            <Link to="/connections" className="text-lbx-green hover:underline">
+              Roadside Connections →
+            </Link>
+          </div>
         )}
       </div>
 

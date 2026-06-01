@@ -163,6 +163,38 @@ export type GameAnswer = {
 
 export type ArchivePuzzle = { number: number; date: string };
 
+// ── Roadside Connections: daily group-the-16 game ───────────────────────────
+export type ConnTile = { id: string; name: string };
+export type ConnectionsGame = {
+  date: string;
+  number: number;
+  puzzleKey: string;
+  groupCount: number;
+  groupSize: number;
+  maxMistakes: number;
+  tiles: ConnTile[];
+};
+export type ConnGroup = { key: string; label: string; level: number; ids: string[] };
+export type ConnGuessResult =
+  | { correct: true; group: ConnGroup }
+  | { correct: false; oneAway: boolean };
+export type ConnAnswer = {
+  groups: { key: string; label: string; level: number; tiles: ConnTile[] }[];
+};
+
+export const connections = {
+  /** Today's 16 tiles (no group assignments). */
+  today: () => api<ConnectionsGame>("/api/connections"),
+  /** Submit 4 tile ids; returns the solved group or one-away feedback. */
+  guess: (ids: string[]) =>
+    api<ConnGuessResult>("/api/connections/guess", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
+  /** Full solution — only after the game ends. */
+  answer: () => api<ConnAnswer>("/api/connections/answer"),
+};
+
 export const game = {
   /** A puzzle's clues — today by default, or a past `date` (YYYY-MM-DD) from the archive. */
   daily: (date?: string) =>

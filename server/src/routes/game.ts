@@ -36,7 +36,7 @@ const POOL_WHERE = {
  * Eastern time so the puzzle rolls over at midnight ET (DST-safe via Intl)
  * rather than mid-evening at UTC midnight.
  */
-function gameDay(now = new Date()): { date: string; seed: number } {
+export function gameDay(now = new Date()): { date: string; seed: number } {
   const date = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/New_York",
     year: "numeric",
@@ -49,7 +49,7 @@ function gameDay(now = new Date()): { date: string; seed: number } {
 }
 
 // Puzzle #1 = the first day on/after launch. Used only for the displayed number.
-const LAUNCH_SEED = Math.floor(Date.UTC(2026, 0, 1) / 86_400_000);
+export const LAUNCH_SEED = Math.floor(Date.UTC(2026, 0, 1) / 86_400_000);
 
 /** Day-seed for an explicit YYYY-MM-DD string (UTC midnight of that calendar date). */
 function seedForDate(date: string): number | null {
@@ -65,7 +65,7 @@ function seedForDate(date: string): number | null {
  * out-of-range or malformed date — callers reject with 400. Refusing future
  * dates also stops anyone from peeking at / pre-locking tomorrow's puzzle.
  */
-function resolveGameDay(requested?: string): { date: string; seed: number } | null {
+export function resolveGameDay(requested?: string): { date: string; seed: number } | null {
   const today = gameDay();
   if (!requested) return today;
   const seed = seedForDate(requested);

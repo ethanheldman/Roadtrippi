@@ -101,6 +101,13 @@ export function Layout({ children }: { children: ReactNode }) {
               </span>
             </Link>
             <Link
+              to="/connections"
+              className={loc.pathname === "/connections" ? "text-lbx-green" : "text-lbx-muted hover:text-lbx-white transition-colors"}
+              title="Roadside Connections — group the 16 attractions"
+            >
+              Connect
+            </Link>
+            <Link
               to="/people"
               className={loc.pathname === "/people" ? "text-lbx-green" : "text-lbx-muted hover:text-lbx-white transition-colors"}
             >
@@ -183,6 +190,7 @@ export function Layout({ children }: { children: ReactNode }) {
               </Link>
               <Link to="/map" className="hover:text-lbx-green transition-colors">Map</Link>
               <Link to="/game" className="hover:text-lbx-green transition-colors">Play</Link>
+              <Link to="/connections" className="hover:text-lbx-green transition-colors">Connect</Link>
               <Link to="/people" className="hover:text-lbx-green transition-colors">People</Link>
             </nav>
           </div>

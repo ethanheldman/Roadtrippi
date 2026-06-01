@@ -236,3 +236,13 @@ model DailyPuzzle {
 
   @@map("daily_puzzles")
 }
+
+// Roadside Connections puzzle lock: the day's 16 tiles + 4 groups, frozen as
+// JSON on first request so the puzzle is stable even as the pool changes.
+model DailyConnections {
+  date      String   @id
+  payload   Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("daily_connections")
+}
